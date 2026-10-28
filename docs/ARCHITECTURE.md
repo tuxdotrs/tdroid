@@ -103,8 +103,8 @@ reach existing installs without breaking them. There are four mechanisms:
   failing. Bump the level with every addition a widget could depend on. The
   store's `index.json` format number only changes for incompatible changes.
 
-**System updates** (`linux/SystemUpdates.kt`) aren't checked on Nix yet: the user
-runs `nix flake update` and `nix-on-droid switch` in `~/.config/nix-on-droid`.
+**System updates** aren't done by the launcher: the user runs `nix flake update` and
+`nix-on-droid switch` in `~/.config/nix-on-droid`.
 
 Pinned versions: `ThemeStore.OMARCHY_REF` (the Omarchy commit) and
 `BOOTSTRAP_URL` in `Bootstrap.kt`. Changing the first makes every install

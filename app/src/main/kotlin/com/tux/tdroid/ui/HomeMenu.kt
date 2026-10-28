@@ -93,7 +93,7 @@ fun HomeMenu(
                     }
                 }
             }
-            SettingsButton(runtime) {
+            SettingsButton {
                 state.homeMenuOpen = false
                 state.show()
             }

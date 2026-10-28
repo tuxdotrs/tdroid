@@ -518,7 +518,7 @@ class WidgetServices(
      * - `hasIcon` whether `icon` draws anything yet; without, the drawer shows `initials` on a badge, as it does a
      *   silhouette when `monochrome`.
      * `linux` is "installed", "installing" or "missing"; `work` is `{paused}` while there's a work profile, else null;
-     * `updates` counts the system updates waiting.
+     * `updates` is always 0, kept for widgets that read it.
      */
     private fun drawer(): Value {
         val apps = runtime.androidApps
@@ -548,7 +548,7 @@ class WidgetServices(
                 )
             }
         val work = if (apps.workProfiles.isEmpty()) Null else Obj(mapOf("paused" to bool(apps.workProfiles.any { apps.paused(it) })))
-        return Obj(mapOf("apps" to Lst(list), "linux" to Str(linuxWord(runtime.bootstrap.state.value)), "monochrome" to bool(LauncherStyle.monochromeIcons), "work" to work, "updates" to Num((runtime.updates.pending?.count ?: 0).toDouble())))
+        return Obj(mapOf("apps" to Lst(list), "linux" to Str(linuxWord(runtime.bootstrap.state.value)), "monochrome" to bool(LauncherStyle.monochromeIcons), "work" to work, "updates" to Num(0.0)))
     }
 
     /** Android hides the battery from the guest (/sys/class/power_supply), so expose it here. */

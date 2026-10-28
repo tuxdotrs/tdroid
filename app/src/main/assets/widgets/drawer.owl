@@ -152,8 +152,6 @@ panel "app drawer" {
         align: center
         onTap: launcher("settings")
         Image { src: gear; size: 22; tint: accent; label: "settings" }
-        // System updates are waiting: settings › system updates lists them.
-        Box { visible: d.updates > 0; align: topEnd; size: 44; padding: 8; Box { size: 8; radius: 4; background: red } }
       }
     }
     Column {

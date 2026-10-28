@@ -28,7 +28,6 @@ import com.tux.tdroid.linux.LinuxApp
 import com.tux.tdroid.linux.NixConfig
 import com.tux.tdroid.linux.OpenBridge
 import com.tux.tdroid.linux.Proot
-import com.tux.tdroid.linux.SystemUpdates
 import com.tux.tdroid.linux.LauncherFont
 import com.tux.tdroid.linux.TerminalFont
 import com.tux.tdroid.linux.bundledIcons
@@ -103,7 +102,6 @@ class Runtime(
 
     /** Widgets' speech(...) and android.speech. */
     val dictation = Dictation(context)
-    val updates = SystemUpdates()
     val gpu = Gpu()
 
     /** The launcher's own provided files (default widgets, their docs); see [Provisioner]. */
@@ -278,10 +276,7 @@ class Runtime(
                 audio.stop()
                 withContext(Dispatchers.IO) { proot.killAll() }
                 bootstrap.remove()
-                withContext(Dispatchers.IO) {
-                    updates.forget()
-                    agents.load()
-                }
+                withContext(Dispatchers.IO) { agents.load() }
                 gpu.turnOff()
                 linuxApps.clear()
                 setService(false)
@@ -341,12 +336,8 @@ class Runtime(
         }
         widgets.linuxChanged(true)
         refreshApps()
-        withContext(Dispatchers.IO) { updates.load() }
-        scope.launch {
-            // Update steps that need the network; the home screen doesn't wait for them.
-            bootstrap.runBacklog()
-            updates.check()
-        }
+        // Update steps that need the network; the home screen doesn't wait for them.
+        scope.launch { bootstrap.runBacklog() }
         // Apps render in software until the GPU passed its check on this system build.
         scope.launch { gpu.recheck() }
     }
@@ -355,19 +346,6 @@ class Runtime(
     fun setGpu(on: Boolean) {
         if (!linux) return
         if (on) scope.launch { gpu.turnOn() } else gpu.turnOff()
-    }
-
-    /** Checks for updates now, on the runtime's scope: leaving settings doesn't cancel it. */
-    fun checkUpdates() {
-        if (linux) scope.launch { updates.check(force = true) }
-    }
-
-    /** Runs every pending update (packages and agents); the drawer then lists what changed. */
-    fun updateSystem() {
-        scope.launch {
-            updates.updateAll()
-            refreshApps()
-        }
     }
 
     /**
@@ -410,8 +388,6 @@ class Runtime(
 
     fun screenStarted() {
         if (screens++ == 0) proot.procShim.setActive(true)
-        // Only checks when the last check is hours old; see SystemUpdates.
-        if (linux) scope.launch { updates.check() }
     }
 
     fun screenStopped() {

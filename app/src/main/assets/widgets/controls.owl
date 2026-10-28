@@ -8,8 +8,6 @@ panel "controls" {
   source v = android.volume
   source md = android.media
   source al = android.alarm
-  // For the dot on the settings button while system updates wait, as the drawer shows it.
-  source d = android.drawer
   source n = android.notifications
   source now = clock every 30s
 
@@ -116,7 +114,7 @@ panel "controls" {
       fill: width
       align: center
       Text { text: "control"; fontSize: 28; color: accent; weight: 1 }
-      // The drawer's settings button: settings › system updates lists what the dot counts.
+      // The drawer's settings button.
       Box {
         size: 44
         radius: 22 * corners
@@ -124,7 +122,6 @@ panel "controls" {
         align: center
         onTap: launcher("settings")
         Image { src: gear; size: 22; tint: accent; label: "settings" }
-        Box { visible: d.updates > 0; align: topEnd; size: 44; padding: 8; Box { size: 8; radius: 4; background: red } }
       }
     }
 

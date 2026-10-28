@@ -31,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
@@ -482,12 +481,9 @@ private fun AppActions(
     }
 }
 
-/** The gear that opens settings, in the drawer and the home menu; a dot while system updates wait. */
+/** The gear that opens settings, in the drawer and the home menu. */
 @Composable
-internal fun SettingsButton(
-    runtime: Runtime,
-    onClick: () -> Unit,
-) {
+internal fun SettingsButton(onClick: () -> Unit) {
     Box(
         Modifier
             .size(44.dp)
@@ -497,15 +493,5 @@ internal fun SettingsButton(
         contentAlignment = Alignment.Center,
     ) {
         Image(Icons.Gear, "settings", Modifier.size(22.dp), colorFilter = ColorFilter.tint(Palette.accent))
-        // Updates are waiting: settings › system updates lists them.
-        if ((runtime.updates.pending?.count ?: 0) > 0) {
-            Box(
-                Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .size(8.dp)
-                    .background(Palette.red, CircleShape),
-            )
-        }
     }
 }

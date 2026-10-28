@@ -45,7 +45,6 @@ fun SettingsScreen(
     onDismiss: () -> Unit,
     onStyle: () -> Unit,
     onPages: () -> Unit,
-    onAgents: () -> Unit,
     onLinux: () -> Unit,
     onLicenses: () -> Unit,
     onGestures: () -> Unit,
@@ -80,11 +79,6 @@ fun SettingsScreen(
                 Triple("pages", runtime.widgets.pages.size.let { if (it == 1) "1 page" else "$it pages" } + " · arrange, edit, remove", onPages),
                 Triple("gestures", "up: ${runtime.gestureLabel(runtime.gestures.swipeUp)} · down: ${runtime.gestureLabel(runtime.gestures.swipeDown)}", onGestures),
                 Triple("linux", linuxStatus, onLinux),
-                if (installed) {
-                    Triple("coding agents", runtime.agents.default?.let { "default: ${it.name}" } ?: "install Claude Code, OpenCode, …", onAgents)
-                } else {
-                    Triple("coding agents", "needs linux", onLinux)
-                },
                 if (localNetworkMissing) {
                     Triple("local network", "let widgets and linux reach your printer, home assistant, …") {
                         askLocalNetwork.launch(LocalNetwork.PERMISSION)
@@ -92,12 +86,9 @@ fun SettingsScreen(
                 } else {
                     null
                 },
-                Triple("android settings", "the phone's system settings") {
-                    context.startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                },
                 Triple("licenses", "open source software in Tdroid", onLicenses),
             )
-        UpdatesBox(runtime, installed)
+        UpdatesBox(runtime)
         if (installed) SetupUpdates(runtime)
         // The local network row goes once it's granted: keys on it go on to the next.
         val next = remember { FocusRequester() }
@@ -106,7 +97,7 @@ fun SettingsScreen(
                 Row(
                     when (title) {
                         "local network" -> Modifier.passesKeys(next)
-                        "android settings" -> Modifier.focusRequester(next)
+                        "licenses" -> Modifier.focusRequester(next)
                         else -> Modifier
                     }.card(onClick = onClick),
                     verticalAlignment = Alignment.CenterVertically,
@@ -145,79 +136,28 @@ private fun SetupUpdates(runtime: Runtime) {
 }
 
 /**
- * "system updates" while Linux is installed, then "widgets": the store's widgets and apps, shown only while they
- * have updates. Each has its own "update"; the top's "update all" shows when both do, and "check" checks both
- * while nothing is pending. Without Linux, the box is only there while widgets have updates.
+ * The store's widgets and apps that have updates, shown only while there are some, each with "update". Edited ones
+ * are only listed: updating them in the store replaces the changes.
  */
 @Composable
-private fun UpdatesBox(
-    runtime: Runtime,
-    linux: Boolean,
-) {
-    val updates = runtime.updates
+private fun UpdatesBox(runtime: Runtime) {
     val engine = runtime.widgets
     val markets = engine.markets
-    if (linux) LaunchedEffect(Unit) { updates.check() }
     LaunchedEffect(Unit) {
         // Opened on its own after the process died, settings comes before the engine has read these.
         withContext(Dispatchers.IO) { markets.forEach { it.load() } }
         markets.forEach { it.refreshIfStale() }
     }
-    val linuxPending = linux && (updates.pending?.count ?: 0) > 0
     val pending = markets.flatMap { m -> m.updates.map { m to it } }
     // Edited ones are left to the store, which says their changes would go.
     val (held, ready) = pending.partition { (m, e) -> m.edited(e) }
-    val busy = updates.job is JobState.Working || updates.checking || engine.updating || markets.any { it.loading }
-    val widgets = pending.isNotEmpty() || engine.updating || engine.updateError != null
-    if (!linux && !widgets) return
+    if (pending.isEmpty() && !engine.updating && engine.updateError == null) return
     Column(
         Modifier.padding(bottom = 8.dp).card(),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            BasicText(if (linux) "system updates" else "widgets", Modifier.weight(1f), style = Mono.copy(fontSize = TextSize.Item))
-            when {
-                busy -> {}
-                // With one section pending, its own "update" is the same thing.
-                linuxPending && ready.isNotEmpty() ->
-                    BracketAction("update all", Palette.accent) {
-                        runtime.updateSystem()
-                        engine.updateAll()
-                    }
-                linuxPending || ready.isNotEmpty() -> {}
-                // Not a composition scope: this branch leaves composition as soon as checking starts, which would cancel the check.
-                else ->
-                    BracketAction("check", Palette.muted) {
-                        runtime.checkUpdates()
-                        engine.checkUpdates()
-                    }
-            }
-        }
-        if (linux) LinuxUpdatesRows(runtime)
-        if (linux && widgets) BasicText("widgets", Modifier.padding(top = 8.dp), style = Mono.copy(fontSize = TextSize.Item))
-        if (widgets) WidgetUpdatesRows(engine, markets, ready, held)
+        BasicText("widgets", style = Mono.copy(fontSize = TextSize.Item))
+        WidgetUpdatesRows(engine, markets, ready, held)
     }
-}
-
-/** Pending system updates, from the last check; "update" runs them as one job. */
-@Composable
-private fun LinuxUpdatesRows(runtime: Runtime) {
-    val updates = runtime.updates
-    val pending = updates.pending
-    val job = updates.job
-    val working = job is JobState.Working
-    val lines =
-        when {
-            working -> listOf("updating…")
-            updates.checking -> listOf("checking…")
-            pending == null -> listOf("not checked yet")
-            pending.error != null -> listOf(pending.error)
-            pending.count == 0 -> listOf("up to date · checked ${ago(pending.checkedAt)}")
-            // The agents first: they're what most people are waiting for.
-            else -> pending.tools.map { "${it.name} ${it.current} → ${it.latest}" } + pending.packages
-        }
-    val ready = (pending?.count ?: 0) > 0 && !working && !updates.checking
-    UpdateLines(lines, ready) { runtime.updateSystem() }
-    JobLog(job)
 }
 
 /**

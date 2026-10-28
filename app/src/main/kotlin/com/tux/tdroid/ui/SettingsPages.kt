@@ -109,7 +109,6 @@ private fun SettingsPage(
                 onDismiss = close,
                 onStyle = { stack.push(SettingsPage.Style) },
                 onPages = { stack.push(SettingsPage.Pages) },
-                onAgents = { stack.push(SettingsPage.Agents) },
                 onLinux = { stack.push(SettingsPage.Linux) },
                 onLicenses = { stack.push(SettingsPage.Licenses) },
                 onGestures = { stack.push(SettingsPage.Gestures) },
