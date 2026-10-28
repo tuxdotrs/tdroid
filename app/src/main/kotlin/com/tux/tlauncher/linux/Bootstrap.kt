@@ -20,6 +20,8 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
+import java.nio.file.Files
+import java.nio.file.LinkOption
 import java.security.DigestInputStream
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
@@ -73,7 +75,7 @@ enum class Stage(
     Download("download nix-on-droid"),
     Extract("unpack the system"),
     Configure("check the system"),
-    Packages("install omarchy's apps with nix"),
+    Packages("build the nix system"),
     Agents("install coding agents"),
 }
 
@@ -572,11 +574,16 @@ class Bootstrap(
      * than its prompt (USE_FLAKE). It makes ~/.config/nix-on-droid from tlauncher's template, builds it
      * and switches to it. A try that stopped part way left that config; `nix flake new` won't write over it.
      */
+    /**
+     * Until this switch the system is only Nix and the bash it came with: no coreutils, so the config a failed try
+     * left behind is deleted from here. login-inner ends in an interactive bash, which reads stdin, hence /dev/null.
+     */
     private fun firstBoot() {
-        guest(
-            "if [ -e /etc/UNINTIALISED ]; then rm -rf ~/.config/nix-on-droid; fi; " +
-                "USE_FLAKE=1 /bin/sh /usr/lib/login-inner true",
-        )
+        // A link to /etc/static, which only resolves inside the guest.
+        if (Files.exists(proot.hostFile("/etc/UNINTIALISED").toPath(), LinkOption.NOFOLLOW_LINKS)) {
+            proot.hostFile("${Proot.GUEST_HOME}/.config/nix-on-droid").deleteRecursively()
+        }
+        guest("USE_FLAKE=1 /bin/sh /usr/lib/login-inner true </dev/null")
     }
 
     private fun compileKeymap() {
@@ -586,12 +593,12 @@ class Bootstrap(
     }
 
     /**
-     * Runs a pipeline, the smallest guest command that forks. Some custom ROM kernels (4.14, with Android's cgroup v2
+     * Runs a pipeline into a second shell (before first boot there's nothing else to run), the smallest guest command that forks. Some custom ROM kernels (4.14, with Android's cgroup v2
      * freezer backported but not its follow-up, upstream 05b289263772) make every fork of a traced process restart
      * forever (#105), and the next step, first boot, would hang without a word. Such a phone gets an error naming the cause.
      */
     private fun checkForks() {
-        val process = proot.process("echo forks | cat").start()
+        val process = proot.process("echo forks | /bin/sh -c 'read -r l; echo \"\$l\"'").start()
         val output = StringBuffer()
         val reader = thread(isDaemon = true) { runCatching { process.inputStream.bufferedReader().forEachLine { output.appendLine(it) } } }
         if (process.waitFor(FORK_CHECK_SECONDS, TimeUnit.SECONDS)) {
