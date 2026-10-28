@@ -14,12 +14,13 @@ it appears: Linux apps, terminal widgets, coding agents, Nix and Files.
 Widgets that need Linux (`Program.needsLinux`: cmd/stream sources, `Terminal`,
 run/terminal/app actions, `requires`) show as placeholders in their cells until
 it's installed. Removing Linux deletes `files/usr` (Nix-on-Droid's installation
-dir) and `files/home` (the guest's home) only.
+dir) and `files/home` (the guest's home), all but `~/.config/tdroid`.
 
-Launcher data that the guest also uses lives outside the rootfs and is bound
-into it by proot (`LauncherData.kt`), so installing or removing Linux never
-touches it: `files/omarchy` is `~/.local/share/omarchy` and `files/widgets` is
-`~/.config/tdroid/widgets`.
+Launcher data that the guest also uses lives outside the rootfs (`LauncherData.kt`),
+so installing or removing Linux never touches it. Home's layout, the widgets and
+the style are the launcher's own folder in the guest's home, `files/home/.config/tdroid`
+(`home/`, `widgets/`, `style/`), which exists with or without Linux; Omarchy's are
+bound into the guest by proot: `files/omarchy` is `~/.local/share/omarchy`.
 
 ## Source layout
 

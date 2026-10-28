@@ -218,9 +218,10 @@ class Bootstrap(
                     !choiceFile.exists() -> {
                         _state.value = LinuxState.NotInstalled
                         // Left by a removal that didn't finish (the app was killed, or a file resisted), or omalauncher's Arch.
-                        for (dir in listOf(proot.rootfs, proot.home, legacyArch)) {
+                        for (dir in listOf(proot.rootfs, legacyArch)) {
                             if (dir.exists()) runCatching { LauncherData.deleteTree(dir) }.onFailure { Log.e(TAG, "leftover $dir", it) }
                         }
+                        runCatching { LauncherData.clearHome(proot.home) }.onFailure { Log.e(TAG, "leftover ${proot.home}", it) }
                         return@withContext
                     }
                     else -> setup()
@@ -280,7 +281,8 @@ class Bootstrap(
             nix.lock.withLock {
                 for (dir in listOf(proot.rootfs, proot.home, staging)) {
                     try {
-                        LauncherData.deleteTree(dir)
+                        // The launcher's own ~/.config/tdroid (layout, widgets, style) stays with the home screen.
+                        if (dir == proot.home) LauncherData.clearHome(dir) else LauncherData.deleteTree(dir)
                     } catch (e: Exception) {
                         // Whatever is left can't run; a later install unpacks over a fresh directory anyway.
                         Log.e(TAG, "$dir not fully deleted", e)

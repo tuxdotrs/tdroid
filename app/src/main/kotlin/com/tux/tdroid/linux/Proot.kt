@@ -27,7 +27,7 @@ class Proot(
     /** The guest user's home, [GUEST_HOME], and the launcher's places in it. */
     val home = File(filesDir, "home")
     val applications = File(home, ".local/share/applications")
-    val launcherConfig = File(home, ".config/tdroid")
+    val launcherConfig = LauncherData.configDir(context)
 
     /**
      * A listable stand-in for /sys: apps may only read /sys/devices/system/cpu,
@@ -48,9 +48,6 @@ class Proot(
     private val dataBinds =
         listOf(
             "$GUEST_HOME/.local/share/omarchy" to LauncherData.omarchyDir(context),
-            "$GUEST_HOME/.config/tdroid/widgets" to LauncherData.widgetsDir(context),
-            "$GUEST_HOME/.config/tdroid/style" to LauncherData.styleDir(context),
-            "$GUEST_HOME/.config/tdroid/home" to LauncherData.homeDir(context),
             "$GUEST_HOME/.config/omarchy/themes" to LauncherData.userThemesDir(context),
             "$GUEST_HOME/.config/omarchy/backgrounds" to LauncherData.userBackgroundsDir(context),
         )
