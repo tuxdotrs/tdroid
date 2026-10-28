@@ -327,8 +327,6 @@ internal fun HomeGrid(
     render: @Composable (HomeItem, Modifier, Boolean) -> Unit,
     actions: @Composable (HomeItem) -> Unit,
     onLongPressEmpty: () -> Unit,
-    /** What a page left of the first ([isFacePage]) shows while no face is there; it gets the page's number. */
-    feed: @Composable (Int) -> Unit,
     onNoRoom: (HomeItem) -> Unit,
     onMove: (HomeItem, Int) -> Unit,
     onGroup: (Shortcut, HomeItem) -> Unit,
@@ -763,7 +761,7 @@ internal fun HomeGrid(
                         Row(Modifier.fillMaxSize().focusProperties { onEnter = { if (slot != pager.currentPage) cancelFocusChange() } }.focusGroup()) {
                             for (page in shown) {
                                 Box(Modifier.width(with(density) { g.width.toDp() }).fillMaxHeight()) {
-                                    TiledPage(page, itemsOn(page), layout, g, arrange, selected, tile, actions, onNoRoom, feed)
+                                    TiledPage(page, itemsOn(page), layout, g, arrange, selected, tile, actions, onNoRoom)
                                 }
                             }
                         }
@@ -863,7 +861,6 @@ private fun TiledPage(
     render: @Composable (HomeItem, Modifier, Boolean) -> Unit,
     actions: @Composable (HomeItem) -> Unit,
     onNoRoom: (HomeItem) -> Unit,
-    feed: @Composable (Int) -> Unit,
 ) {
     val density = LocalDensity.current
     val carried = arrange.carry?.item?.key
@@ -890,18 +887,11 @@ private fun TiledPage(
                 }
             }
         }
-        if (isFacePage(page) && carried == null && items.isEmpty()) {
-            feed(page)
-        } else if (items.none { it.key != carried } && (carried != null || LauncherStyle.emptyPageRight || page == 1)) {
-            // An empty page is the one after the last, or unfolded the blank half beside an odd last page, but for page 1
-            // of an empty home. With home.empty-page-right off, that half stays blank rather than inviting a new page.
+        // An empty page stays blank, but while a tile is carried over it says what it takes.
+        if (carried != null && items.none { it.key != carried }) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 BasicText(
-                    when {
-                        isFacePage(page) && arrange.carry?.item?.isFace != true -> "only a face goes here"
-                        carried != null -> "drop here"
-                        else -> "no widgets on this page · long-press for a new one"
-                    },
+                    if (isFacePage(page) && arrange.carry?.item?.isFace != true) "only a face goes here" else "drop here",
                     Modifier.background(Palette.background.copy(alpha = 0.8f)).padding(horizontal = 12.dp, vertical = 6.dp),
                     style = Mono,
                 )

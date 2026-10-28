@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import com.tux.tdroid.widgets.FACE_PAGE
 import com.tux.tdroid.widgets.isFacePage
-import com.tux.tdroid.widgets.lang.OwlKind
 import com.tux.tdroid.widgets.Folder
 import com.tux.tdroid.widgets.HomeItem
 import com.tux.tdroid.widgets.Shortcut
@@ -78,14 +77,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.collectAsState
 import com.tux.tdroid.Runtime
 import com.tux.tdroid.linux.LinuxState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.text.BasicText
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.offset
 import com.tux.tdroid.widgets.render.LocalHomeTiles
 import com.tux.tdroid.widgets.editWidgetCommand
 import com.tux.tdroid.widgets.fixDependenciesCommand
-import com.tux.tdroid.widgets.newOwlCommand
 
 /** Home pages of JSON widgets on a snap grid, bordered and gapped like Omarchy windows. */
 @Composable
@@ -445,15 +440,6 @@ fun HomeScreen(
             side = side,
             per = per,
             onLongPressEmpty = { openMenu(null) },
-            feed = { page ->
-                FaceInvite(runtime.agents.default?.name, onBrowse = { state.show(SettingsPage.FaceStore) }) {
-                    if (linuxState == LinuxState.Installed) {
-                        state.withAgent(runtime, "New face") { newOwlCommand(it, OwlKind.Face, page) }
-                    } else {
-                        state.show(SettingsPage.Linux)
-                    }
-                }
-            },
             // Home turns to where a tile the user just added went; a shipped one that doesn't fit, as on a short
             // screen's first home, moves without taking home off page 1.
             onNoRoom = { item ->
@@ -488,40 +474,6 @@ fun HomeScreen(
     }
 }
 
-
-/**
- * The page left of the first, while it's empty: where a stock launcher has its news feed, an invitation to have
- * [agent] build a face of the user's own for it.
- */
-@Composable
-private fun FaceInvite(
-    agent: String?,
-    onBrowse: () -> Unit,
-    onCreate: () -> Unit,
-) {
-    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-        Column(
-            Modifier
-                .widthIn(max = 360.dp)
-                .frame(1.dp, Palette.border, Palette.background.copy(alpha = 0.85f))
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            BasicText("a face of your own", style = Mono.copy(color = Palette.accent))
-            // The theme's own text color: muted is too faint on some themes' card.
-            BasicText(
-                "This page is yours to fill with a face: a feed, a dashboard, a start page, a game. Say what you want and " +
-                    "${agent ?: "an agent"} builds it here, full screen.",
-                style = Mono,
-            )
-            // Pulled left by the buttons' own padding, so the first bracket lines up with the text.
-            Column(Modifier.offset(x = (-8).dp)) {
-                BracketAction("create with ${agent?.lowercase() ?: "an agent"}", Palette.accent, onClick = onCreate)
-                BracketAction("browse store", Palette.accent, onClick = onBrowse)
-            }
-        }
-    }
-}
 
 /**
  * Home's page numbers as the pager has them: [pages], with the empty page waiting left of the leftmost for a new face
