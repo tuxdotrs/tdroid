@@ -102,7 +102,7 @@ class Runtime(
 
     /** Widgets' speech(...) and android.speech. */
     val dictation = Dictation(context)
-    val gpu = Gpu()
+    val gpu = Gpu(context, proot)
 
     /** The launcher's own provided files (default widgets, their docs); see [Provisioner]. */
     private val launcherFiles = Provisioner(proot.filesDir, LauncherData.LAUNCHER_MANIFEST, listOf(widgets::managed, style::managed))

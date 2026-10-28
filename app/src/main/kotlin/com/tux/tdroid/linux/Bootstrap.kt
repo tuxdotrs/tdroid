@@ -592,7 +592,7 @@ class Bootstrap(
             proot.hostFile("${Proot.GUEST_HOME}/.config/nix-on-droid").deleteRecursively()
         }
         // Nix reuses what github:tuxdotrs/tdroid pointed to for an hour, so a retry would get the flake that failed.
-        guest("NIX_CONFIG='tarball-ttl = 0' USE_FLAKE=1 /bin/sh /usr/lib/login-inner true </dev/null")
+        guest("NIX_CONFIG=\"$(printf 'tarball-ttl = 0\\n$TDROID_CACHE')\" USE_FLAKE=1 /bin/sh /usr/lib/login-inner true </dev/null")
     }
 
     private fun compileKeymap() {

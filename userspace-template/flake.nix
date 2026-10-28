@@ -2,13 +2,11 @@
   description = "tdroid's Nix-on-Droid system config.";
 
   inputs = {
-    # Lowercase on purpose: first boot rewrites lines with github:NixOS/nixpkgs to its own default (24.05).
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nix-on-droid.url = "github:tuxdotrs/tdroid";
 
-    nix-on-droid = {
-      url = "github:tuxdotrs/tdroid";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # tdroid's own nixpkgs (nixos-unstable), so the GPU driver it builds comes from its binary cache rather than
+    # being compiled here. `nix flake update` moves both together.
+    nixpkgs.follows = "nix-on-droid/nixpkgs";
   };
 
   outputs = { self, nixpkgs, nix-on-droid }: {

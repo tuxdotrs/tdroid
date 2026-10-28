@@ -34,6 +34,11 @@ in
     fontconfig
     pulseaudio
 
+    # Mesa, which Linux apps draw with: in software, or on the GPU through zink once settings › linux turns it on.
+    # The launcher picks the driver for each app with VK_ICD_FILENAMES and friends, from ~/.nix-profile.
+    tdroid.mesa
+    tdroid.gpu-check
+
     # Fonts; Android's own are in /system/fonts
     dejavu_fonts
     jetbrains-mono
@@ -69,13 +74,15 @@ in
     TERMINFO_DIRS = "${config.user.home}/.nix-profile/share/terminfo";
     XKB_CONFIG_ROOT = "${pkgs.xkeyboard-config}/share/X11/xkb";
 
-    # Linux apps draw with Mesa in software (llvmpipe, lavapipe for Vulkan). Nix's libglvnd and Vulkan
-    # loader look for drivers where NixOS puts them, /run/opengl-driver, which isn't here.
-    __EGL_VENDOR_LIBRARY_DIRS = "${pkgs.mesa}/share/glvnd/egl_vendor.d";
-    LIBGL_DRIVERS_PATH = "${pkgs.mesa}/lib/dri";
-    LIBGL_ALWAYS_SOFTWARE = "1";
-    VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/lvp_icd.${pkgs.stdenv.hostPlatform.uname.processor}.json";
+    # Nix's libglvnd looks for drivers where NixOS puts them, /run/opengl-driver, which isn't here. Software or GPU
+    # is the launcher's to say, per app: it sets LIBGL_ALWAYS_SOFTWARE, VK_ICD_FILENAMES and the zink variables.
+    __EGL_VENDOR_LIBRARY_DIRS = "${pkgs.tdroid.mesa}/share/glvnd/egl_vendor.d";
+    LIBGL_DRIVERS_PATH = "${pkgs.tdroid.mesa}/lib/dri";
   };
+
+  # The patched Mesa is on tdroid's cache, built from the same nixpkgs as this config.
+  nix.substituters = [ "https://tuxdotrs.cachix.org" ];
+  nix.trustedPublicKeys = [ "tuxdotrs.cachix.org-1:L9A8WmHYbSKBVsoxTzMCH/CMX8dExo7cnfPN+hEIcg4=" ];
 
   # Backup etc files instead of failing to activate generation if a file already exists in /etc
   environment.etcBackupExtension = ".bak";

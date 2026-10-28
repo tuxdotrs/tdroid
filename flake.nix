@@ -57,9 +57,38 @@
         src = nix-on-droid;
         patches = lib.filesystem.listFilesRecursive ./patches/userspace;
       });
+
+      /**
+       * pkgs.tdroid in every tdroid config. mesa: OpenGL as zink on the phone's Vulkan driver (Turnip on Adreno), with
+       * patches/mesa so zink presents through wl_shm, the only buffers tdroid's compositor takes; only the drivers a
+       * phone can use, to keep the build short. It's on tuxdotrs.cachix.org, built from this flake's nixpkgs, which
+       * configs follow so theirs match it. gpu-check: whether OpenGL starts on the GPU, run by the launcher.
+       */
+      tdroidOverlay = final: prev: {
+        tdroid = rec {
+          mesa = (prev.mesa.override {
+            galliumDrivers = [ "zink" "llvmpipe" "freedreno" "panfrost" ];
+            vulkanDrivers = [ "freedreno" "panfrost" "swrast" ];
+          }).overrideAttrs (old: {
+            pname = "mesa-tdroid";
+            patches = (old.patches or [ ]) ++ lib.filesystem.listFilesRecursive ./patches/mesa;
+            # Video decoding through VA-API needs a desktop GPU's driver; none of these have it.
+            mesonFlags = old.mesonFlags ++ [ (lib.mesonEnable "gallium-va" false) ];
+            # spirv2dxil comes with the Dozen (D3D12) driver, which isn't built; its output stays, empty.
+            postInstall = old.postInstall + "\nmkdir -p $spirv2dxil\n";
+          });
+          gpu-check = final.writeShellScriptBin "tdroid-gpu-check" ''
+            # OpenGL offscreen with the environment the launcher gives GPU apps; prints the renderer.
+            ${final.mesa-demos}/bin/eglinfo -B -p surfaceless 2>&1 | grep -m1 'renderer: zink' || { echo "OpenGL didn't start on the GPU"; exit 1; }
+          '';
+        };
+      };
     in
     {
+      overlays.default = tdroidOverlay;
+
       lib.nixOnDroidConfiguration = args: upstream.lib.nixOnDroidConfiguration (args // {
+        pkgs = args.pkgs.extend tdroidOverlay;
         modules = (args.modules or [ ]) ++ [ (import ./patches/userspace.nix nix-on-droid) ];
       });
 
@@ -68,6 +97,9 @@
         inherit (upstream.packages.${system}) nix-on-droid;
         inherit ((patched system).packages.${system}) bootstrapZip-aarch64 bootstrapZip-x86_64;
         default = upstream.packages.${system}.nix-on-droid;
+
+        # The patched Mesa (see tdroidOverlay), for scripts/push-mesa.sh to build and push to the cache.
+        mesa = (nixpkgs.legacyPackages.${system}.extend tdroidOverlay).tdroid.mesa;
       });
 
       apps = forEachSystem (system: {

@@ -5,8 +5,17 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
 
+/**
+ * tdroid's binary cache, where the patched Mesa is (see the flake's tdroidOverlay), as Nix settings. The config lists it
+ * too (nix.substituters), but a switch reads nix.conf from the system it replaces: on first boot, and on a system from
+ * before the cache, that one doesn't have it yet, and Mesa would be compiled on the phone.
+ */
+const val TDROID_CACHE =
+    "extra-substituters = https://tuxdotrs.cachix.org\\n" +
+        "extra-trusted-public-keys = tuxdotrs.cachix.org-1:L9A8WmHYbSKBVsoxTzMCH/CMX8dExo7cnfPN+hEIcg4="
+
 /** Builds and activates ~/.config/nix-on-droid; Nix-on-Droid's own `nix-on-droid switch`. */
-const val NIX_SWITCH = "nix-on-droid switch --flake ~/.config/nix-on-droid"
+const val NIX_SWITCH = "NIX_CONFIG=\"$(printf '$TDROID_CACHE')\" nix-on-droid switch --flake ~/.config/nix-on-droid"
 
 /**
  * The guest's Nix-on-Droid config, ~/.config/nix-on-droid, made on first boot from tdroid's
