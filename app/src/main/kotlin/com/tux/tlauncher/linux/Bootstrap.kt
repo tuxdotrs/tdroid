@@ -572,18 +572,17 @@ class Bootstrap(
     /**
      * Nix-on-Droid's first boot, which its app runs on the first login: login-inner, with flakes rather
      * than its prompt (USE_FLAKE). It makes ~/.config/nix-on-droid from tlauncher's template, builds it
-     * and switches to it. A try that stopped part way left that config; `nix flake new` won't write over it.
-     */
-    /**
-     * Until this switch the system is only Nix and the bash it came with: no coreutils, so the config a failed try
-     * left behind is deleted from here. login-inner ends in an interactive bash, which reads stdin, hence /dev/null.
+     * and switches to it. A try that stopped part way left that config; `nix flake new` won't write over it, and
+     * until this switch the system is only Nix and its bash, without coreutils, so it's deleted from here.
+     * login-inner ends in an interactive bash, which reads stdin, hence /dev/null.
      */
     private fun firstBoot() {
         // A link to /etc/static, which only resolves inside the guest.
         if (Files.exists(proot.hostFile("/etc/UNINTIALISED").toPath(), LinkOption.NOFOLLOW_LINKS)) {
             proot.hostFile("${Proot.GUEST_HOME}/.config/nix-on-droid").deleteRecursively()
         }
-        guest("USE_FLAKE=1 /bin/sh /usr/lib/login-inner true </dev/null")
+        // Nix reuses what github:tuxdotrs/tlauncher pointed to for an hour, so a retry would get the flake that failed.
+        guest("NIX_CONFIG='tarball-ttl = 0' USE_FLAKE=1 /bin/sh /usr/lib/login-inner true </dev/null")
     }
 
     private fun compileKeymap() {
