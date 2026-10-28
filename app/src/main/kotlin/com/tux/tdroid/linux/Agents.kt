@@ -23,7 +23,10 @@ data class Agent(
     val windowAlias get() = bin.split('-').joinToString("") { it.replaceFirstChar(Char::uppercase) } + "Window"
 }
 
-/** Omarchy's agent list (omarchy-default-agent), limited to ones nixpkgs has for aarch64-linux. */
+/**
+ * Omarchy's agent list (omarchy-default-agent), limited to ones nixpkgs has for aarch64-linux; "unstable." ones come from
+ * nixos-unstable, which the tdroid flake adds to the config's pkgs.
+ */
 val AGENTS =
     listOf(
         Agent("claude", "Claude Code", "Anthropic's coding agent", "claude-code"),
@@ -33,6 +36,7 @@ val AGENTS =
         Agent("crush", "Crush", "Charm's agent for the terminal", "crush"),
         Agent("cursor-agent", "Cursor CLI", "Cursor's agent for the terminal", "cursor-cli"),
         Agent("pi", "Pi", "Minimal, extensible coding agent", "pi-coding-agent"),
+        Agent("omp", "Oh My Pi", "Pi with tools and plugins built in", "unstable.omp"),
     )
 
 /**

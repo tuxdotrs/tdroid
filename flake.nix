@@ -11,6 +11,9 @@
 
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
+    # Packages the stable release doesn't have yet, as pkgs.unstable: coding agents like Oh My Pi (omp).
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+
     # Pinned like upstream: the bootstrap zip and proot-termux are built with it.
     nixpkgs-for-bootstrap.url = "github:NixOS/nixpkgs/49ee0e94463abada1de470c9c07bfc12b36dcf40";
 
@@ -33,7 +36,7 @@
     };
   };
 
-  outputs = inputs@{ self, nixpkgs, nix-on-droid, ... }:
+  outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, nix-on-droid, ... }:
     let
       inherit (nixpkgs) lib;
       forEachSystem = lib.genAttrs [ "aarch64-linux" "x86_64-linux" ];
@@ -42,7 +45,7 @@
       outputsOf = src:
         let
           # Its outputs function takes exactly its own inputs.
-          upstreamInputs = builtins.removeAttrs inputs [ "nix-on-droid" ];
+          upstreamInputs = builtins.removeAttrs inputs [ "nix-on-droid" "nixpkgs-unstable" ];
           outputs = (import "${src}/flake.nix").outputs (upstreamInputs // { self = outputs // { outPath = "${src}"; }; });
         in
         outputs;
@@ -59,7 +62,11 @@
       });
     in
     {
+      # pkgs gains unstable, nixos-unstable with the same system and config (unfree agents too).
       lib.nixOnDroidConfiguration = args: upstream.lib.nixOnDroidConfiguration (args // {
+        pkgs = args.pkgs.extend (final: prev: {
+          unstable = import nixpkgs-unstable { inherit (prev.stdenv.hostPlatform) system; inherit (prev) config; };
+        });
         modules = (args.modules or [ ]) ++ [ (import ./patches/userspace.nix nix-on-droid) ];
       });
 
