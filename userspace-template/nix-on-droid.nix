@@ -40,27 +40,8 @@ in
     jetbrains-mono
     nerd-fonts.symbols-only
 
-    # Omarchy's terminal apps
-    btop
-    fastfetch
-    neovim
-    micro
-    starship
-    eza
-    bat
-    fd
-    ripgrep
-    fzf
-    zoxide
-    tmux
-    gum
-    jq
-    tealdeer
-    dua
-    inxi
-    whois
-    yazi
-    cliamp
+
+    # Add your own here, then run `nix-on-droid switch --flake ~/.config/nix-on-droid`.
   ] ++ launcherPackages;
 
   environment.etc = {

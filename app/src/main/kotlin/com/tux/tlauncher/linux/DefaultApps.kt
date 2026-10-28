@@ -21,17 +21,15 @@ private fun entry(
 }
 
 /**
- * The drawer's small, touch-friendly set of Linux apps: all of them take taps and
- * scrolling. Keyed by desktop file id: a file in ~/.local/share/applications
+ * The drawer's Linux apps that ship with the system or the launcher: all of them take taps and
+ * scrolling. Packages you add bring their own entries. Keyed by desktop file id: a file in ~/.local/share/applications
  * overrides the package's entry of the same name, as XDG specifies.
  */
 private val CURATED =
     mapOf(
         "foot" to entry("Terminal", "foot", terminal = false, icon = "foot"),
-        "btop" to entry("btop", "btop", icon = "btop"),
         "omarchy-files" to entry("Files", FILES_COMMAND, terminal = false, icon = bundledIcon("files")),
         "micro" to entry("Editor", EDIT_COMMAND, terminal = false, icon = bundledIcon("editor")),
-        "cliamp" to entry("Cliamp", "cliamp", icon = bundledIcon("cliamp")),
     )
 
 /**
