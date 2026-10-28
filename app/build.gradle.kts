@@ -23,8 +23,8 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "0.1.0"
-        // -Pabis=x86_64 builds for an emulator or Waydroid: the launcher runs, Linux doesn't (proot is arm64 only).
-        ndk { abiFilters += providers.gradleProperty("abis").orNull?.split(',') ?: listOf("arm64-v8a") }
+        // Phones, and x86_64 for emulators and Waydroid; -Pabis=arm64-v8a builds one.
+        ndk { abiFilters += providers.gradleProperty("abis").orNull?.split(',') ?: listOf("arm64-v8a", "x86_64") }
     }
 
     buildFeatures { buildConfig = true }

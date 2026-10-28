@@ -30,12 +30,16 @@ import kotlin.concurrent.thread
 
 private const val TAG = "bootstrap"
 /**
- * Nix-on-Droid's bootstrap zip with tlauncher's patches, from scripts/build-userspace.sh. Rebuild and
- * upload it whenever patches/userspace or the userspace submodule change, and update both values.
+ * Nix-on-Droid's bootstrap zips with tlauncher's patches, from scripts/build-userspace.sh, one per
+ * architecture: phones, and x86_64 for emulators and Waydroid. Rebuild and upload them whenever
+ * patches/userspace or the userspace submodule change, and update the release and the SHA256s.
  */
-private const val BOOTSTRAP_URL = "https://github.com/tuxdotrs/tlauncher/releases/download/userspace-3264519/bootstrap-aarch64.zip"
-private const val BOOTSTRAP_SHA256 = "fa342631c133fa88fe9c84339a843b326be8d79aedf32e5d337cb6495d50d205"
-private const val BOOTSTRAP = "bootstrap-aarch64.zip"
+private const val BOOTSTRAP_RELEASE = "https://github.com/tuxdotrs/tlauncher/releases/download/userspace-3264519"
+private val BOOTSTRAP_SHA256 =
+    mapOf(
+        "aarch64" to "fa342631c133fa88fe9c84339a843b326be8d79aedf32e5d337cb6495d50d205",
+        "x86_64" to "79b6530955df53ff73d81df5f4110cbe86c4843e86243ac7c6a3809f860b98b6",
+    )
 
 /**
  * Where the patched Nix-on-Droid expects to be, baked into the zip. Only the phone's first user has
@@ -149,6 +153,10 @@ class Bootstrap(
     val updates = _updates.asStateFlow()
 
     private val log = OutputTail(200)
+
+    /** The architecture of the proot Android extracted for this APK (lib/arm64 or lib/x86_64), which the zip must match. */
+    private val arch = if (File(context.applicationInfo.nativeLibraryDir).name == "x86_64") "x86_64" else "aarch64"
+    private val bootstrap = "bootstrap-$arch.zip"
     private val journal = StepJournal(File(proot.filesDir, "rootfs-steps.json"))
 
     /** The agents picked when installing Linux, one bin per line; its existence means an install was started. */
@@ -282,7 +290,7 @@ class Bootstrap(
                 provisioner.forgetAll()
                 choiceFile.delete()
                 proot.keymap.delete()
-                context.cacheDir.listFiles { f -> f.name.startsWith(BOOTSTRAP) }?.forEach { it.delete() }
+                context.cacheDir.listFiles { f -> f.name.startsWith(bootstrap) }?.forEach { it.delete() }
                 log.clear()
                 cancelled = false
             }
@@ -438,7 +446,7 @@ class Bootstrap(
             val buf = ByteArray(1 shl 16)
             while (input.read(buf) >= 0) checkCancelled()
         }
-        check(digest.digest().hex() == BOOTSTRAP_SHA256) { "the download isn't the expected Nix-on-Droid build; retry to download it again" }
+        check(digest.digest().hex() == BOOTSTRAP_SHA256.getValue(arch)) { "the download isn't the expected Nix-on-Droid build; retry to download it again" }
     }
 
     /** Stops before writing when the app's storage has less than [bytes] free: a full phone fails at once, not after the download. */
@@ -458,15 +466,15 @@ class Bootstrap(
      * still the same one (If-Range): two versions mustn't be spliced.
      */
     private fun obtainTarball(): File {
-        val external = context.getExternalFilesDir(null)?.let { File(it, BOOTSTRAP) }
+        val external = context.getExternalFilesDir(null)?.let { File(it, bootstrap) }
         if (external != null && external.exists()) return external
-        val target = File(context.cacheDir, BOOTSTRAP)
+        val target = File(context.cacheDir, bootstrap)
         if (target.exists()) return target
-        val partial = File(context.cacheDir, "$BOOTSTRAP.part")
-        val validator = File(context.cacheDir, "$BOOTSTRAP.version")
+        val partial = File(context.cacheDir, "$bootstrap.part")
+        val validator = File(context.cacheDir, "$bootstrap.version")
         requireSpace(TARBALL_SPACE - (if (partial.exists()) partial.length() else 0L) + SYSTEM_SPACE)
         report(Stage.Download, "Downloading Nix-on-Droid", 0f)
-        val conn = openHttp(BOOTSTRAP_URL)
+        val conn = openHttp("$BOOTSTRAP_RELEASE/$bootstrap")
         connection = conn
         try {
             checkCancelled()
