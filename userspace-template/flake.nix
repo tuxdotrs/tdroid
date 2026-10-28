@@ -3,7 +3,7 @@
 
   inputs = {
     # Lowercase on purpose: first boot rewrites lines with github:NixOS/nixpkgs to its own default (24.05).
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
     nix-on-droid = {
       url = "github:tuxdotrs/tdroid";
