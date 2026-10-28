@@ -175,17 +175,17 @@ fun HomeScreen(
     // Pages appearing before the one showing don't move home off it, unless home was just sent to another page. At
     // start, pinned apps load before widgets, so page 1 may join after the faces and later pages: until widgets have
     // loaded, home keeps to page 1 rather than whatever stands at its index.
+    // In the same frame as the change, before the pages are laid out: a scroll after it would show the page that took the
+    // index first, as when a carried tile adds the page left of page 1, and when the drop takes it away again.
     val listed = remember { arrayOf(slots) }
+    SideEffect {
+        if (!engine.loaded || slots == listed[0]) return@SideEffect
+        listed[0] = slots
+        val i = showPage?.let(::slotOf)?.takeIf { it >= 0 } ?: slotOf(engine.activePage)
+        if (i >= 0 && i != pager.currentPage) pager.requestScrollToPage(i)
+    }
     LaunchedEffect(pager.currentPage, slots, engine.loaded) {
         if (!engine.loaded) return@LaunchedEffect
-        if (slots != listed[0]) {
-            listed[0] = slots
-            val i = slotOf(engine.activePage)
-            if (showPage == null && i >= 0 && i != pager.currentPage) {
-                pager.scrollToPage(i)
-                return@LaunchedEffect
-            }
-        }
         engine.activePage = slots.getOrNull(pager.currentPage)?.first() ?: 1
         state.currentPage = engine.activePage.takeIf { it >= 1 && !full(it) } ?: 1
     }
@@ -210,15 +210,16 @@ fun HomeScreen(
     LaunchedEffect(pager, view) {
         val wallpapers = WallpaperManager.getInstance(view.context)
         snapshotFlow {
-            val last = pager.pageCount - 1
-            val offset = if (last <= 0) 0.5f else ((pager.currentPage + pager.currentPageOffsetFraction) / last).coerceIn(0f, 1f)
+            // Among home's own pages: the empty ones a carried tile adds would shift it as they come and go.
+            val (position, count) = restingPosition(currentSlots, engine.pages.toSet(), pager.currentPage + pager.currentPageOffsetFraction)
+            val offset = if (count <= 1) 0.5f else (position / (count - 1)).coerceIn(0f, 1f)
             // Also resent when our live wallpaper is picked, which starts out centered.
-            offset to runtime.themes.liveWallpaperActive
-        }.collect { (offset, live) ->
+            Triple(offset, count, runtime.themes.liveWallpaperActive)
+        }.collect { (offset, count, live) ->
             state.wallpaperOffset = offset
             if (live) {
                 view.windowToken?.let {
-                    wallpapers.setWallpaperOffsetSteps(if (pager.pageCount > 1) 1f / (pager.pageCount - 1) else 1f, 1f)
+                    wallpapers.setWallpaperOffsetSteps(if (count > 1) 1f / (count - 1) else 1f, 1f)
                     wallpapers.setWallpaperOffsets(it, offset, 0.5f)
                 }
             }
@@ -490,6 +491,26 @@ internal fun pagerPages(
     if (!carrying) return pages
     val (faces, tiles) = pages.partition(::isFacePage)
     return faces + NEW_PAGE_LEFT + tiles + if (lastEmpty) emptyList() else listOf(pages.last() + 1)
+}
+
+/**
+ * The pager's [position] (slots, fractional while swiping) as one among the slots that show home's own [pages], and how
+ * many those are: a slot with none of them, the empty page a carried tile adds at either end, stands where the nearest
+ * of home's own does.
+ */
+internal fun restingPosition(
+    slots: List<List<Int>>,
+    pages: Set<Int>,
+    position: Float,
+): Pair<Float, Int> {
+    val own = slots.map { slot -> slot.any { it in pages } }
+    val count = own.count { it }
+    if (count == 0) return 0f to 0
+    // Each slot's place among home's own: theirs, or for an added one the next one's, so the last stays at the end.
+    fun rank(i: Int) = own.take(i.coerceIn(0, own.size)).count { it }.coerceAtMost(count - 1)
+    val i = position.toInt().coerceIn(0, slots.lastIndex)
+    val from = rank(i)
+    return from + (rank(i + 1) - from) * (position - i).coerceIn(0f, 1f) to count
 }
 
 /**

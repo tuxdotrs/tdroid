@@ -27,4 +27,17 @@ class SlotsTest {
     @Test fun theNewLeftPageStandsAlone() {
         assertEquals(listOf(listOf(NEW_PAGE_LEFT), listOf(1, 2), listOf(3, 4)), slotsOf(listOf(NEW_PAGE_LEFT, 1, 2, 3), 2, ::isFacePage))
     }
+
+    // The wallpaper stays put as a carried tile adds empty pages at both ends, and moves as the pager turns between home's own.
+    @Test fun addedPagesDontMoveTheWallpaper() {
+        val resting = listOf(listOf(1), listOf(2))
+        val carrying = listOf(listOf(NEW_PAGE_LEFT), listOf(1), listOf(2), listOf(3))
+        val own = setOf(1, 2)
+        assertEquals(0f to 2, restingPosition(resting, own, 0f))
+        assertEquals(0f to 2, restingPosition(carrying, own, 1f))
+        assertEquals(0f to 2, restingPosition(carrying, own, 0f))
+        assertEquals(1f to 2, restingPosition(carrying, own, 2f))
+        assertEquals(1f to 2, restingPosition(carrying, own, 3f))
+        assertEquals(0.5f to 2, restingPosition(carrying, own, 1.5f))
+    }
 }
