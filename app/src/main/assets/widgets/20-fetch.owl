@@ -3,7 +3,7 @@ widget "fetch" {
   order: 2
   size: 3x3
   minSize: 3x2
-  meta { description: "Your phone at a glance, fastfetch style, with or without Linux: CPU, memory, storage, battery and theme, plus Arch's packages once Linux is installed. Tap it for every detail"; version: "1.6"; license: "MIT"; category: "system"; owl: 13 }
+  meta { description: "Your phone at a glance, fastfetch style, with or without Linux: CPU, memory, storage, battery and theme, plus Nix's packages once Linux is installed. Tap it for every detail"; version: "1.6"; license: "MIT"; category: "system"; owl: 13 }
 
   // The phone, from Android: works without Linux.
   source dev = android.device
@@ -40,11 +40,17 @@ widget "fetch" {
 
   onTap: screen()
 
-  // Arch's A with its rounded cut, or Android's head, in the accent color.
-  component Logo(arch) {
+  // Nix's snowflake, six arms around a gap, or Android's head, in the accent color.
+  component Logo(nix) {
     Canvas {
-      if arch {
-        path([[0.5, 0], [1, 1], [0.7, 0.84], [0.62, 0.62], [0.5, 0.56], [0.38, 0.62], [0.3, 0.84], [0, 1]].map(p => [p[0] * width, p[1] * height]), closed: true, fill: accent)
+      if nix {
+        let c = min(width, height) / 2
+        for i in range(6) {
+          rotate(i * 60, width / 2, height / 2) {
+            line(width / 2, height / 2 - c * 0.3, width / 2, height / 2 - c * 0.95, stroke: accent, width: max(c / 4, 2), cap: round)
+            line(width / 2, height / 2 - c * 0.62, width / 2 + c * 0.28, height / 2 - c * 0.82, stroke: accent, width: max(c / 6, 1.5), cap: round)
+          }
+        }
       } else {
         let r = width * 0.46
         let cy = height * 0.8
@@ -99,7 +105,7 @@ widget "fetch" {
     Row {
       gap: 8
       align: center
-      Logo { arch: linux; size: 28 }
+      Logo { nix: linux; size: 28 }
       Column {
         gap: 2
         weight: 1
@@ -136,7 +142,7 @@ widget "fetch" {
       Row {
         gap: 16
         align: center
-        Logo { arch: linux; size: 72 }
+        Logo { nix: linux; size: 72 }
         Column {
           gap: 6
           weight: 1
