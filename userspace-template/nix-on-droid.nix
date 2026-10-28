@@ -68,6 +68,13 @@ in
     FONTCONFIG_FILE = "/etc/fonts/fonts.conf";
     TERMINFO_DIRS = "${config.user.home}/.nix-profile/share/terminfo";
     XKB_CONFIG_ROOT = "${pkgs.xkeyboard-config}/share/X11/xkb";
+
+    # Linux apps draw with Mesa in software (llvmpipe, lavapipe for Vulkan). Nix's libglvnd and Vulkan
+    # loader look for drivers where NixOS puts them, /run/opengl-driver, which isn't here.
+    __EGL_VENDOR_LIBRARY_DIRS = "${pkgs.mesa}/share/glvnd/egl_vendor.d";
+    LIBGL_DRIVERS_PATH = "${pkgs.mesa}/lib/dri";
+    LIBGL_ALWAYS_SOFTWARE = "1";
+    VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/lvp_icd.${pkgs.stdenv.hostPlatform.uname.processor}.json";
   };
 
   # Backup etc files instead of failing to activate generation if a file already exists in /etc
