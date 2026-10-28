@@ -30,8 +30,7 @@ face "morning" {
 - **Where it goes.** `page: 0` (the default) is the page just left of page 1; `-1`, `-2`, ... go further
   left. Home opens on page 1; only faces go left of it, never tiles. One whose place is taken goes left
   of the leftmost face instead, as does a face added from the store. A face can also take a page right
-  of page 1 (`page: 3`) if no tiles are there. `home.empty-page-right = false` in style.toml hides the
-  empty page after the last page of tiles (it still comes while a tile is carried, to drop it on).
+  of page 1 (`page: 3`) if no tiles are there.
 - **The screen.** It fills the whole screen: the recent apps strip and the bar slide away with the tile
   pages (swipe up for the app drawer, which brings the bar back). The status bar stays, over the face,
   and the nodes keep clear of it; `statusBar: false` hides it while the face shows (a swipe down from the

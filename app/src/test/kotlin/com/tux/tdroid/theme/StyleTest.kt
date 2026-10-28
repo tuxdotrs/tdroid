@@ -180,8 +180,8 @@ class StyleTest {
         }
     }
 
-    @Test fun theEmptyLeftPageSettingIsDropped() {
-        val t = linkedMapOf<String, Any>("version" to 1.0, "home.empty-page-left" to false, "home.recent-apps" to false)
+    @Test fun theEmptyPageSettingsAreDropped() {
+        val t = linkedMapOf<String, Any>("version" to 1.0, "home.empty-page-left" to false, "home.empty-page-right" to false, "home.recent-apps" to false)
         StyleFile.migrate(t)
         assertEquals(mapOf("version" to 2.0, "home.recent-apps" to false), t)
     }

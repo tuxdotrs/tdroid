@@ -11,6 +11,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.rememberUpdatedState
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import com.tux.tdroid.widgets.NEW_PAGE_LEFT
 import com.tux.tdroid.widgets.isFacePage
 import com.tux.tdroid.widgets.Folder
 import com.tux.tdroid.widgets.HomeItem
@@ -91,17 +92,16 @@ fun HomeScreen(
     val engine = runtime.widgets
     val linuxState by runtime.bootstrap.state.collectAsState()
     val arrange = remember { Arrange() }
-    // One empty page always waits after the last one, to drop tiles on or pin apps to. Pages only exist
-    // while they hold something, so it becomes a real page once used and a new empty one follows.
-    // home.empty-page-right turns it off; it still comes while a tile is carried, to drop it on. Faces' pages, left of
-    // page 1, only exist while they hold one.
+    // Pages only exist while they hold something. While a tile is carried, an empty page waits at each end of the tile
+    // pages, as on a stock launcher, to drop it on: after the last, and left of page 1, which takes over page 1 then.
+    // The one before shifts the pages after it, but home stays on the page it showed (see listed below).
     // Unfolded, tile pages show in pairs and a face across both halves: the pager counts slots (see slotsOf).
     val per = if (showsTwoPages(windowSize())) 2 else 1
     val pageNumbers =
         pagerPages(
             engine.pages,
             lastEmpty = engine.itemsOn(engine.pages.last()).isEmpty(),
-            emptyPageRight = LauncherStyle.emptyPageRight || arrange.carry != null,
+            carrying = arrange.carry?.item?.isFace == false,
         )
     // Only faces on screen: they get it whole, the bar's room too (see
     // LauncherState.faceShowing), and the status bar's while all of them say statusBar: false.
@@ -444,7 +444,14 @@ fun HomeScreen(
             },
             onMove = { item, page ->
                 engine.moveToPage(item, page)
-                showPage = page
+                if (page == NEW_PAGE_LEFT) {
+                    // Numbered again with it before page 1, it becomes page 1.
+                    val (faces, tiles) = engine.pages.filter { it != NEW_PAGE_LEFT }.partition(::isFacePage)
+                    engine.arrangePages(faces + NEW_PAGE_LEFT + tiles)
+                    showPage = 1
+                } else {
+                    showPage = page
+                }
             },
             onGroup = { app, target -> engine.shortcuts.group(app, target) },
             onReorder = { app, before -> engine.shortcuts.moveBefore(app.key, before) },
@@ -471,20 +478,26 @@ fun HomeScreen(
 
 
 /**
- * Home's page numbers as the pager has them: [pages], and with [emptyPageRight] an empty one after the last, for tiles,
- * unless that one is empty already ([lastEmpty]).
+ * Home's page numbers as the pager has them: [pages], and while a tile is [carrying] an empty page at each end of the
+ * tile pages: [NEW_PAGE_LEFT] before page 1 (after any faces), and one after the last unless that one is empty already
+ * ([lastEmpty]).
  */
 internal fun pagerPages(
     pages: List<Int>,
     lastEmpty: Boolean,
-    emptyPageRight: Boolean,
-): List<Int> = if (!emptyPageRight || lastEmpty) pages else pages + (pages.last() + 1)
+    carrying: Boolean,
+): List<Int> {
+    if (!carrying) return pages
+    val (faces, tiles) = pages.partition(::isFacePage)
+    return faces + NEW_PAGE_LEFT + tiles + if (lastEmpty) emptyList() else listOf(pages.last() + 1)
+}
 
 /**
  * The pager's slots, what each of its positions shows left to right: a page each with [per] 1. Unfolded ([per] 2), tile
  * pages in pairs, so every tile keeps its folded size, and a [full] page (a face's)
  * alone across both halves, as a face is the whole screen. A tile page with a full one after it stands alone, its other
- * half empty; the last one gets the number after it as an empty partner, to drop tiles on.
+ * half empty; the last one gets the number after it as an empty partner, to drop tiles on. [NEW_PAGE_LEFT] stands alone
+ * too, so the pairs after it stay as they were while a tile is carried.
  */
 internal fun slotsOf(
     pages: List<Int>,
@@ -499,7 +512,7 @@ internal fun slotsOf(
         val next = pages.getOrNull(i + 1)
         slots +=
             when {
-                full(page) -> listOf(page)
+                full(page) || page == NEW_PAGE_LEFT -> listOf(page)
                 next == null -> listOf(page, page + 1)
                 full(next) -> listOf(page)
                 else -> listOf(page, next).also { i++ }

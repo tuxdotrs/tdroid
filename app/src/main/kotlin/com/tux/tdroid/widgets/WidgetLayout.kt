@@ -43,8 +43,14 @@ data class Cell(
  */
 const val FACE_PAGE = 0
 
-/** Left of page 1: a face's place, never a tile's. */
-fun isFacePage(page: Int) = page <= FACE_PAGE
+/**
+ * The empty page that waits left of page 1 while a tile is carried: dropped on, it becomes page 1 and the others move
+ * up one (see WidgetEngine.arrangePages). Its number only has to sort before every face's.
+ */
+const val NEW_PAGE_LEFT = Int.MIN_VALUE / 2
+
+/** Left of page 1: a face's place, never a tile's, but for [NEW_PAGE_LEFT]. */
+fun isFacePage(page: Int) = page <= FACE_PAGE && page != NEW_PAGE_LEFT
 
 /** The home grid's columns before they could be set: a saved layout that doesn't say has this many. */
 const val CLASSIC_COLUMNS = 6
