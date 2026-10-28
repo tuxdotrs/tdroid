@@ -1,5 +1,8 @@
 package com.tux.tlauncher.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.os.Build
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
@@ -32,25 +35,27 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.tux.tlauncher.BuildConfig
+import com.tux.tlauncher.Runtime
 import com.tux.tlauncher.linux.AGENTS
 import com.tux.tlauncher.linux.Agent
-import androidx.compose.runtime.rememberCoroutineScope
-import com.tux.tlauncher.Runtime
 import com.tux.tlauncher.linux.LinuxState
 import com.tux.tlauncher.linux.Stage
 import com.tux.tlauncher.theme.BundledTheme
@@ -351,6 +356,16 @@ internal fun LinuxProgress(
         BracketAction("cancel install", Palette.red, Modifier.takesPassedKeys().passesKeys(), onCancel)
         Spacer(Modifier.height(16.dp))
     }
+    if (log.isNotEmpty()) {
+        val context = LocalContext.current
+        var copied by remember(log) { mutableStateOf(false) }
+        BracketAction(if (copied) "copied" else "copy logs", Palette.accent, Modifier.takesPassedKeys().passesKeys()) {
+            val report = setupReport(current.label, failed?.message ?: working?.step, log)
+            context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("tlauncher setup log", report))
+            copied = true
+        }
+        Spacer(Modifier.height(16.dp))
+    }
     LogTail(log, expandedByDefault = failed != null)
     if (failed == null) {
         BasicText(
@@ -360,6 +375,19 @@ internal fun LinuxProgress(
         )
     }
 }
+
+/** Setup's whole log, after what's needed to make sense of it elsewhere: the app, the phone and where setup is. */
+private fun setupReport(
+    stage: String,
+    detail: String?,
+    log: List<String>,
+): String =
+    buildString {
+        appendLine("tlauncher ${BuildConfig.VERSION_NAME} · ${Build.MANUFACTURER} ${Build.MODEL} · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}) · kernel ${System.getProperty("os.version")}")
+        appendLine(if (detail != null) "$stage: $detail" else stage)
+        appendLine()
+        log.forEach(::appendLine)
+    }
 
 private enum class StageStatus { Done, Running, Failed, Pending }
 
