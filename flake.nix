@@ -38,34 +38,37 @@
       inherit (nixpkgs) lib;
       forEachSystem = lib.genAttrs [ "aarch64-linux" "x86_64-linux" ];
 
-      # nix-on-droid hard-codes /data/data/com.termux.nix, so its source is patched rather than configured.
-      # Patching needs a builder; `pkgs` is the one of the system that evaluates.
-      patchedFor = pkgs: pkgs.applyPatches {
-        name = "nix-on-droid-tlauncher";
-        src = nix-on-droid;
-        patches = lib.filesystem.listFilesRecursive ./patches/userspace;
-      };
-
-      # Upstream's flake outputs, evaluated from the patched source with our inputs.
-      upstreamFor = pkgs:
+      # Upstream's flake outputs, evaluated from `src` with our inputs.
+      outputsOf = src:
         let
-          src = patchedFor pkgs;
           # Its outputs function takes exactly its own inputs.
           upstreamInputs = builtins.removeAttrs inputs [ "nix-on-droid" ];
           outputs = (import "${src}/flake.nix").outputs (upstreamInputs // { self = outputs // { outPath = "${src}"; }; });
         in
         outputs;
+
+      # What the phone evaluates: unpatched upstream plus patches/userspace.nix, so nothing is built
+      # before the configuration itself.
+      upstream = outputsOf nix-on-droid;
+
+      # The bootstrap zip, built on a computer: upstream with patches/userspace applied.
+      patched = system: outputsOf (nixpkgs.legacyPackages.${system}.applyPatches {
+        name = "nix-on-droid-tlauncher";
+        src = nix-on-droid;
+        patches = lib.filesystem.listFilesRecursive ./patches/userspace;
+      });
     in
     {
-      lib.nixOnDroidConfiguration = args: (upstreamFor args.pkgs).lib.nixOnDroidConfiguration args;
+      lib.nixOnDroidConfiguration = args: upstream.lib.nixOnDroidConfiguration (args // {
+        modules = (args.modules or [ ]) ++ [ (import ./patches/userspace.nix nix-on-droid) ];
+      });
 
       # `nix run github:tuxdotrs/tlauncher -- switch`, which first boot runs too.
-      packages = forEachSystem (system:
-        let upstream = upstreamFor nixpkgs.legacyPackages.${system};
-        in {
-          inherit (upstream.packages.${system}) nix-on-droid bootstrapZip-aarch64 bootstrapZip-x86_64;
-          default = upstream.packages.${system}.nix-on-droid;
-        });
+      packages = forEachSystem (system: {
+        inherit (upstream.packages.${system}) nix-on-droid;
+        inherit ((patched system).packages.${system}) bootstrapZip-aarch64 bootstrapZip-x86_64;
+        default = upstream.packages.${system}.nix-on-droid;
+      });
 
       apps = forEachSystem (system: {
         default = {
