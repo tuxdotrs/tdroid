@@ -30,7 +30,6 @@ in
     man-db
     ncurses
     foot
-    foot.terminfo
     libxkbcommon # xkbcli, for the keyboard map
     fontconfig
     pulseaudio
