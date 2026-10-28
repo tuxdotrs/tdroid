@@ -1,0 +1,24 @@
+seccomp: replace epoll_create when the policy rejects it
+
+Android's app seccomp policy on x86_64 (emulators, Waydroid) rejects the legacy
+epoll_create, which arm64 never had. Flutter's Linux embedder creates its
+message loop with epoll_create(1), so Flutter apps such as LocalSend aborted with
+"Check failed: epoll_fd_.is_valid()". epoll_wait is already replaced below.
+
+--- a/src/tracee/seccomp.c	2026-10-28 12:50:59.891411163 +0530
++++ b/src/tracee/seccomp.c	2026-10-28 12:52:29.333078130 +0530
+@@ -197,6 +197,14 @@
+ 		restart_syscall_after_seccomp(tracee);
+ 		break;
+ 
++	case PR_epoll_create:
++		/* Android's app policy on x86_64 rejects the legacy call, which
++		 * Flutter's Linux embedder makes; its size argument is unused.  */
++		set_sysnum(tracee, PR_epoll_create1);
++		poke_reg(tracee, SYSARG_1, 0);
++		restart_syscall_after_seccomp(tracee);
++		break;
++
+ 	case PR_setgroups:
+ 	case PR_setgroups32:
+ 		set_result_after_seccomp(tracee, 0);
