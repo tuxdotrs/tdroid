@@ -46,17 +46,17 @@ pptstatus=~/.cache/ppt/status.json
 devlogsver=~/.local/share/oma-devlogs/store-version
 devlogsbin=~/.local/bin/oma-devlogs
 devlogserrors=~/.local/share/oma-devlogs/system_errors.py
-flashcards=~/.local/share/tlauncher/flashcards/flashcards.json
-scripts=~/.config/tlauncher/scripts
-layout=~/.local/share/tlauncher-layout
+flashcards=~/.local/share/tdroid/flashcards/flashcards.json
+scripts=~/.config/tdroid/scripts
+layout=~/.local/share/tdroid-layout
 layoutlog=~/.cache/owl-layout.log
 radio=~/.cache/owl-radio
-photo=~/.cache/tlauncher-photos/downloads/photo_demo.jpg
-gameboy=~/.local/state/tlauncher/gameboy/screen.json
-neondl=~/.cache/tlauncher-neondl
+photo=~/.cache/tdroid-photos/downloads/photo_demo.jpg
+gameboy=~/.local/state/tdroid/gameboy/screen.json
+neondl=~/.cache/tdroid-neondl
 privspace=~/.cache/private-space.json
-speedtest=~/.local/share/tlauncher/speedtest/status.json
-bridge=~/.local/share/tlauncher/share-bridge/status.json
+speedtest=~/.local/share/tdroid/speedtest/status.json
+bridge=~/.local/share/tdroid/share-bridge/status.json
 nostr=~/.cache/nostr-inbox/009ce97e22b376c406740f9b842f780ca2e92c2093a5f11d12f43f6150d8e6a1
 omagit=~/projects/weather-cli
 
@@ -325,7 +325,7 @@ chmod +x /usr/local/bin/pgrep
 aside "$photoprism"
 echo '{"url": "https://photos.example.com", "username": "demo", "token": "demo", "preview": "public", "scope": "all", "album": ""}' > "$photoprism"
 mkdir -p ~/.cache/photoprism-random
-/usr/bin/curl -sf -A "tlauncher-store-previews" -o ~/.cache/photoprism-random/demo.jpg \
+/usr/bin/curl -sf -A "tdroid-store-previews" -o ~/.cache/photoprism-random/demo.jpg \
   "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Moraine_Lake_17092005.jpg/960px-Moraine_Lake_17092005.jpg"
 cat > /usr/local/bin/python <<'EOF'
 #!/bin/sh
@@ -574,7 +574,7 @@ aside "$layoutlog"
 (
   cd "$layout" && git init -q -b main && git config user.name demo && git config user.email demo@localhost
   printf '%s\n' owl-layout install.sh README.md 'packages-*.txt' > .gitignore
-  set -- ~/.config/tlauncher/widgets/*.owl
+  set -- ~/.config/tdroid/widgets/*.owl
   commit() {
     local t=$(( $(date +%s) - $1 * 3600 ))
     git add -A
@@ -582,13 +582,13 @@ aside "$layoutlog"
   }
   cp -p "$1" widgets/; commit 150
   cp -p "$@" widgets/; commit 98
-  cp -p ~/.config/tlauncher/style/style.toml style/ 2>/dev/null; commit 75
-  cp -p ~/.config/tlauncher/agent . 2>/dev/null; commit 2
-  git remote add origin https://github.com/demo/tlauncher-layout.git
+  cp -p ~/.config/tdroid/style/style.toml style/ 2>/dev/null; commit 75
+  cp -p ~/.config/tdroid/agent . 2>/dev/null; commit 2
+  git remote add origin https://github.com/demo/tdroid-layout.git
   git update-ref refs/remotes/origin/main HEAD
 )
 t=$(( $(date +%s) - 7200 ))
-printf '%s saved: %s\n%s uploaded to demo/tlauncher-layout\n' "$(date -d "@$t" +%H:%M:%S)" "$(git -C "$layout" log -1 --format=%s)" \
+printf '%s saved: %s\n%s uploaded to demo/tdroid-layout\n' "$(date -d "@$t" +%H:%M:%S)" "$(git -C "$layout" log -1 --format=%s)" \
   "$(date -d "@$((t + 6))" +%H:%M:%S)" > "$layoutlog"
 
 # shafiqimtiaz's omagit: a small project with a week of history, a feature branch merged back,
@@ -652,7 +652,7 @@ echo "ICY-META: StreamTitle='Parcels - Tieduprightnow';" > "$radio/now"
 # zyanmd's photo: a picture already set (scripts/store-previews.sh seeds the path), Avalanche
 # Lake in Glacier National Park (public domain, Wikimedia Commons).
 aside "$photo"
-/usr/bin/curl -sf -A "tlauncher-store-previews" -o "$photo" \
+/usr/bin/curl -sf -A "tdroid-store-previews" -o "$photo" \
   "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Avalanche_Lake%2C_Glacier_National_Park.jpg/960px-Avalanche_Lake%2C_Glacier_National_Park.jpg"
 
 # gb-widget: a game saved mid-level, a made-up platformer frame in the handheld's four shades,
@@ -715,12 +715,12 @@ row() { printf '\033[1;36m%-16s%s\033[0m%s\n' "$1" "$2" "${3:+: $3}"; }
 printf '\033[1;36m%-16s\033[1mroot\033[0m@\033[1;36mlocalhost\033[0m\n' '      /\'
 printf '\033[1;36m%-16s\033[0m--------------\n' '     /  \'
 row '    /\   \' OS 'Arch Linux ARM aarch64'
-row '   /      \' Host 'Tlauncher (Android 15)'
+row '   /      \' Host 'Tdroid (Android 15)'
 row '  /   ,,   \' Kernel 'Linux 6.1.99-android14'
 row ' /   |  |  -\' Uptime '3 days, 4 hours'
 row "/_-''    ''-_\\" Packages '418 (pacman)'
 row '' Shell 'bash 5.3.3'
-row '' Terminal 'tlauncher'
+row '' Terminal 'tdroid'
 row '' CPU '8 cores @ 2.80 GHz'
 row '' Memory '3.14 GiB / 7.47 GiB (42%)'
 row '' 'Disk (/)' '9.84 GiB / 52.3 GiB (19%)'

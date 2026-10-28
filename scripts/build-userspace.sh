@@ -9,12 +9,12 @@ OUT="$ROOT/build/userspace"
 ARCH=${ARCH:-aarch64}
 # Where first boot gets its config template and every `nix-on-droid switch` the patched modules:
 # this repo's flake.nix, which must be public.
-TLAUNCHER_FLAKE=${TLAUNCHER_FLAKE:-github:tuxdotrs/tlauncher}
+TDROID_FLAKE=${TDROID_FLAKE:-github:tuxdotrs/tdroid}
 
 "$ROOT/scripts/check-userspace-rev.sh"
 mkdir -p "$OUT"
 # --impure: nix-on-droid reads the flake URL from the environment.
-NIX_ON_DROID_FLAKE_URL="$TLAUNCHER_FLAKE" \
+NIX_ON_DROID_FLAKE_URL="$TDROID_FLAKE" \
   nix build "path:$ROOT#bootstrapZip-$ARCH" --impure --out-link "$OUT/result-$ARCH"
 cp -f "$OUT/result-$ARCH/bootstrap-$ARCH.zip" "$OUT/"
 chmod u+w "$OUT/bootstrap-$ARCH.zip"

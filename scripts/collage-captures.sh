@@ -14,7 +14,7 @@ STORE="${1:-$HERE/../../omarchy-widgets}"
 shift || true
 export ANDROID_SERIAL="${ANDROID_SERIAL:-emulator-5554}"
 OUT="$HERE/../store/collage/raw"
-PKG=com.tux.tlauncher
+PKG=com.tux.tdroid
 DATA=/data/data/$PKG
 BACKUP=/data/local/tmp/collage-backup.tar
 

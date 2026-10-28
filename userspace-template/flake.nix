@@ -1,12 +1,12 @@
 {
-  description = "tlauncher's Nix-on-Droid system config.";
+  description = "tdroid's Nix-on-Droid system config.";
 
   inputs = {
     # Lowercase on purpose: first boot rewrites lines with github:NixOS/nixpkgs to its own default (24.05).
     nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
 
     nix-on-droid = {
-      url = "github:tuxdotrs/tlauncher";
+      url = "github:tuxdotrs/tdroid";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };

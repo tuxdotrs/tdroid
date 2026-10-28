@@ -1,9 +1,9 @@
 #!/bin/bash
-# tlauncher: checks widgets and apps the way the launcher sees them (see
+# tdroid: checks widgets and apps the way the launcher sees them (see
 # WidgetEngine.kt). Waits until the launcher has loaded each file as it is on
 # disk, then prints its errors and where the picture of its tile is.
 set -u
-dir="$HOME/.config/tlauncher/widgets"
+dir="$HOME/.config/tdroid/widgets"
 
 if [ $# -eq 0 ] || [ "$1" = -h ] || [ "$1" = --help ]; then
   cat >&2 <<EOF

@@ -1,2 +1,2 @@
-package_name("com.tux.tlauncher")
+package_name("com.tux.tdroid")
 json_key_file("fastlane/play-store-key.json")

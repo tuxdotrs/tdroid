@@ -1,9 +1,9 @@
 #!/bin/bash
-# tlauncher: sets a state of a running home-screen widget, or refreshes it,
+# tdroid: sets a state of a running home-screen widget, or refreshes it,
 # from scripts, cron jobs and hooks (see WidgetEngine.kt receive()). Drops a
 # request into the widgets' .inbox and waits for the launcher's answer.
 set -u
-dir="$HOME/.config/tlauncher/widgets"
+dir="$HOME/.config/tdroid/widgets"
 
 usage() {
   cat >&2 <<USAGE

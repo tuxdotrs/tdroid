@@ -1,4 +1,4 @@
-rootProject.name = "Tlauncher"
+rootProject.name = "Tdroid"
 
 pluginManagement {
     repositories {

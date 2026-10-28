@@ -1,7 +1,7 @@
-# Tlauncher
+# Tdroid
 
 An Android home screen with the look of [Omarchy](https://omarchy.org), and an
-optional [Nix-on-Droid](https://github.com/nix-community/nix-on-droid) system next to your phone apps. Tlauncher runs the
+optional [Nix-on-Droid](https://github.com/nix-community/nix-on-droid) system next to your phone apps. Tdroid runs the
 system under proot, without root, and is its Wayland compositor: every Linux
 window opens as its own Android task, with its own card in Recents.
 
@@ -36,7 +36,7 @@ coding agents. Focusing it opens the list of Linux and Android apps; typing
 narrows the list, and Enter opens the highlighted app or sends the text to the
 agent. Short queries that name an app open it, sentences go to the agent; Tab
 and the arrow keys move the highlight. Tap the agent's name to pick another
-installed one; the choice is saved in `~/.config/tlauncher/agent`. Hold the mic to talk and release to send, or tap it to dictate
+installed one; the choice is saved in `~/.config/tdroid/agent`. Hold the mic to talk and release to send, or tap it to dictate
 into the field. Speech is recognized by Android (on the device when the phone
 supports it), so only text reaches Linux.
 
@@ -76,7 +76,7 @@ git submodule update --init       # userspace: upstream nix-on-droid, which patc
 ./scripts/build-userspace.sh      # the Linux system's bootstrap zip (needs Nix with flakes)
 ./gradlew :app:installDebug
 # optional: use the zip you built instead of the release's
-adb push build/userspace/bootstrap-aarch64.zip /sdcard/Android/data/com.tux.tlauncher/files/
+adb push build/userspace/bootstrap-aarch64.zip /sdcard/Android/data/com.tux.tdroid/files/
 ```
 
 `nix-shell` (`shell.nix`) has the Android SDK, NDK and JDKs the build needs; run the steps above
@@ -85,11 +85,11 @@ inside it, or one at a time with `nix-shell --run './gradlew :app:assembleDebug'
 ### The Linux system
 
 The Linux system is [Nix-on-Droid](https://github.com/nix-community/nix-on-droid), in the
-`userspace` submodule, which is never edited: tlauncher's changes are the patch series in
+`userspace` submodule, which is never edited: tdroid's changes are the patch series in
 `patches/userspace` (it hard-codes its app's data dir, `com.termux.nix`). `flake.nix` applies
 them for the device too: first boot creates `~/.config/nix-on-droid` from
 `userspace-template` and every `nix-on-droid switch` builds with this repo's flake, so the
-repo has to be public at `github:tuxdotrs/tlauncher`.
+repo has to be public at `github:tuxdotrs/tdroid`.
 
 - `scripts/userspace-patches.sh apply` checks the series out as commits in
   `build/userspace-work`; commit there, then `scripts/userspace-patches.sh export`.
@@ -102,7 +102,7 @@ Tests: `./gradlew :owl:test :app:testDebugUnitTest`. `./gradlew :owl:owlJar`
 builds `owl/build/cli/owl.jar`, the checker the widget store's CI runs.
 
 In debug builds you can launch guest commands with
-`adb shell am start -n com.tux.tlauncher/.MainActivity --es exec foot`.
+`adb shell am start -n com.tux.tdroid/.MainActivity --es exec foot`.
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): the compositor, rendering, the Linux system,
   and how updates reach existing installs
@@ -121,13 +121,13 @@ In debug builds you can launch guest commands with
 
 ## License
 
-Tlauncher is a fork of [omalauncher](https://github.com/SimonSchubert/omalauncher)
-by Simon Schubert. MIT, see [LICENSE](LICENSE), for Tlauncher's own code and artwork. The
+Tdroid is a fork of [omalauncher](https://github.com/SimonSchubert/omalauncher)
+by Simon Schubert. MIT, see [LICENSE](LICENSE), for Tdroid's own code and artwork. The
 coding agents' logos, the symbol font and Omarchy's theme colors are not
 covered; [THIRD_PARTY.md](THIRD_PARTY.md) lists them with their sources and
 licenses. The app also ships proot, talloc and libandroid-shmem (GPL-2.0,
 LGPL-3.0 and BSD-3-Clause, prebuilt by Termux), listed in the app under
 settings › licenses.
 
-Tlauncher is an independent project and is not affiliated with or endorsed
+Tdroid is an independent project and is not affiliated with or endorsed
 by Omarchy, Nix-on-Droid, NixOS, or the makers of the coding agents it installs.

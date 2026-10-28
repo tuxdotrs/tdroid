@@ -13,12 +13,12 @@ val uploadKey = rootProject.file("keystore.properties").takeIf { it.exists() }
 val prootNdk = rootProject.file("scripts/fetch-proot.sh").readLines().first { it.startsWith("NDK_VERSION=") }.substringAfter('=')
 
 android {
-    namespace = "com.tux.tlauncher"
+    namespace = "com.tux.tdroid"
     compileSdk = 37
     ndkVersion = prootNdk
 
     defaultConfig {
-        applicationId = "com.tux.tlauncher"
+        applicationId = "com.tux.tdroid"
         minSdk = 29
         targetSdk = 37
         versionCode = 1

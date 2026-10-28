@@ -14,7 +14,7 @@ val cli: SourceSet by sourceSets.creating {
 configurations[cli.implementationConfigurationName].extendsFrom(configurations.implementation.get())
 
 application {
-    mainClass = "com.tux.tlauncher.widgets.cli.MainKt"
+    mainClass = "com.tux.tdroid.widgets.cli.MainKt"
     applicationName = "owl"
 }
 
@@ -28,7 +28,7 @@ dependencies {
 tasks.register<Jar>("owlJar") {
     archiveFileName = "owl.jar"
     destinationDirectory = layout.buildDirectory.dir("cli")
-    manifest { attributes["Main-Class"] = "com.tux.tlauncher.widgets.cli.MainKt" }
+    manifest { attributes["Main-Class"] = "com.tux.tdroid.widgets.cli.MainKt" }
     from(sourceSets.main.get().output, cli.output)
     from(cli.runtimeClasspath.filter { it.name.endsWith(".jar") }.map { zipTree(it) })
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE

@@ -4,7 +4,7 @@ let
   # Packages the launcher adds and removes (coding agents), as nixpkgs attribute paths.
   launcherPackages = map
     (name: lib.getAttrFromPath (lib.splitString "." name) pkgs)
-    (lib.importJSON ./tlauncher-packages.json);
+    (lib.importJSON ./tdroid-packages.json);
 in
 {
   environment.packages = with pkgs; [
@@ -46,10 +46,10 @@ in
   environment.etc = {
     "os-release".text = ''
       NAME="Nix-on-Droid"
-      PRETTY_NAME="tlauncher (Nix-on-Droid)"
+      PRETTY_NAME="tdroid (Nix-on-Droid)"
       ID=nix-on-droid
       ID_LIKE=nixos
-      HOME_URL="https://github.com/tuxdotrs/tlauncher"
+      HOME_URL="https://github.com/tuxdotrs/tdroid"
     '';
 
     "fonts/fonts.conf".text = ''

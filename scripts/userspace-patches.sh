@@ -14,7 +14,7 @@ base=$(git -C "$ROOT" ls-tree HEAD userspace | awk '{print $3}')
 case "${1:-}" in
   apply)
     git -C "$ROOT/userspace" worktree remove --force "$WORK" 2>/dev/null || true
-    git -C "$ROOT/userspace" worktree add --force -B tlauncher-patches "$WORK" "$base"
+    git -C "$ROOT/userspace" worktree add --force -B tdroid-patches "$WORK" "$base"
     git -C "$WORK" am --3way "$PATCHES"/*.patch
     ;;
   export)

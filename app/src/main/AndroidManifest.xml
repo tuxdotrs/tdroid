@@ -43,7 +43,7 @@
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@style/Theme.Tlauncher"
+        android:theme="@style/Theme.Tdroid"
         android:usesCleartextTraffic="true">
 
         <activity
@@ -81,7 +81,7 @@
             android:exported="false"
             android:noHistory="true"
             android:taskAffinity=""
-            android:theme="@style/Theme.Tlauncher.Dialog">
+            android:theme="@style/Theme.Tdroid.Dialog">
             <intent-filter>
                 <action android:name="android.content.pm.action.CONFIRM_PIN_SHORTCUT" />
             </intent-filter>
@@ -90,7 +90,7 @@
         <activity
             android:name=".LinuxWindowActivity"
             android:label="Linux"
-            android:theme="@style/Theme.Tlauncher.Window"
+            android:theme="@style/Theme.Tdroid.Window"
             android:autoRemoveFromRecents="true"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|density|uiMode"
             android:documentLaunchMode="always"
@@ -211,7 +211,7 @@
             android:exported="false"
             android:label="App"
             android:resizeableActivity="true"
-            android:theme="@style/Theme.Tlauncher.Window"
+            android:theme="@style/Theme.Tdroid.Window"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
@@ -223,7 +223,7 @@
             android:launchMode="singleTask"
             android:resizeableActivity="true"
             android:taskAffinity="${applicationId}.files"
-            android:theme="@style/Theme.Tlauncher.Window"
+            android:theme="@style/Theme.Tdroid.Window"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
@@ -234,7 +234,7 @@
             android:launchMode="singleTask"
             android:resizeableActivity="true"
             android:taskAffinity="${applicationId}.settings"
-            android:theme="@style/Theme.Tlauncher.Window"
+            android:theme="@style/Theme.Tdroid.Window"
             android:windowSoftInputMode="adjustResize" />
 
         <!-- One task per file, named after it; launched with the file in the intent's data. -->
@@ -246,7 +246,7 @@
             android:icon="@drawable/editor"
             android:label="Editor"
             android:resizeableActivity="true"
-            android:theme="@style/Theme.Tlauncher.Window"
+            android:theme="@style/Theme.Tdroid.Window"
             android:windowSoftInputMode="adjustResize" />
 
         <provider
@@ -276,7 +276,7 @@
         <service
             android:name=".widgets.runtime.MediaListener"
             android:exported="true"
-            android:label="Tlauncher widgets"
+            android:label="Tdroid widgets"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />

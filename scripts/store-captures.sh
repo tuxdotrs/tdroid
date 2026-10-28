@@ -7,7 +7,7 @@
 # itself out for that and nothing is cropped or squashed. System UI demo mode keeps the clock and icons tidy.
 #
 # Needs a debug build (run-as, the `theme` and `exec` extras) with Linux and the coding agents in RECENT installed,
-# on an emulator with Google Play so the Play Store is there to show: the Tlauncher_Play AVD, which needs no root.
+# on an emulator with Google Play so the Play Store is there to show: the Tdroid_Play AVD, which needs no root.
 # The launcher's widgets, home layout, pinned apps, recent apps and theme are backed up first and put back
 # afterwards, as are the display size and demo mode.
 #
@@ -19,7 +19,7 @@ STORE="${1:-$HERE/../../omarchy-widgets}"
 shift || true
 export ANDROID_SERIAL="${ANDROID_SERIAL:-emulator-5562}"
 OUT="$HERE/../store/screenshots/raw"
-PKG=com.tux.tlauncher
+PKG=com.tux.tdroid
 DATA=/data/data/$PKG
 BACKUP=cache/store-backup.tar
 SIZE=1080x1670
@@ -170,7 +170,7 @@ shot_linux() {
   adb push "$ff" /data/local/tmp/store-ff.sh >/dev/null
   rm "$ff"
   app "cp /data/local/tmp/store-ff.sh files/widgets/.store-ff.sh"
-  adb shell am start -n $PKG/.MainActivity --es exec "'foot bash /root/.config/tlauncher/widgets/.store-ff.sh'" >/dev/null
+  adb shell am start -n $PKG/.MainActivity --es exec "'foot bash /root/.config/tdroid/widgets/.store-ff.sh'" >/dev/null
   sleep 10
 }
 shot_style() {

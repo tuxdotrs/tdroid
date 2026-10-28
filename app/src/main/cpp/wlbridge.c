@@ -19,7 +19,7 @@
 
 #define TAG "wlbridge"
 #define MAX_FDS 28
-#define FN(name) Java_com_tux_tlauncher_wayland_Native_##name
+#define FN(name) Java_com_tux_tdroid_wayland_Native_##name
 
 static inline int min_i(int a, int b) { return a < b ? a : b; }
 static inline int max_i(int a, int b) { return a > b ? a : b; }

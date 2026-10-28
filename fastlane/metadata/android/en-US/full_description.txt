@@ -1,4 +1,4 @@
-Tlauncher is a keyboard-friendly home screen that brings the look of Omarchy to Android, and can run a full Nix-on-Droid system next to your phone apps.
+Tdroid is a keyboard-friendly home screen that brings the look of Omarchy to Android, and can run a full Nix-on-Droid system next to your phone apps.
 
 THEMES
 Pick from 22 Omarchy themes: Tokyo Night, Catppuccin, Gruvbox, Nord, Rose Pine, Kanagawa, Everforest and more. Each theme colors the whole launcher and comes with its own wallpapers, which you can also use as a live wallpaper.
@@ -10,9 +10,9 @@ HOME SCREEN AND WIDGETS
 • An app drawer with search for all your Android apps
 
 NIX-ON-DROID (OPTIONAL)
-The launcher works without it. If you want it, Tlauncher downloads Nix-on-Droid and runs it with proot, without root.
+The launcher works without it. If you want it, Tdroid downloads Nix-on-Droid and runs it with proot, without root.
 • Linux apps open as their own windows, each with its own card in Recents
-• Tlauncher is the Wayland compositor, so graphical apps like foot work
+• Tdroid is the Wayland compositor, so graphical apps like foot work
 • Install anything from nixpkgs, declared in your own Nix flake
 • Terminal widgets that run commands on your home screen
 • Files, a file manager for the Linux home folder
@@ -25,6 +25,6 @@ KEYBOARD SHORTCUTS
 With a hardware keyboard: Super+T opens a terminal, Super+D the drawer, Super+1 to 9 switch pages and Super+W closes a window.
 
 PRIVACY
-No account, no ads, no tracking. Tlauncher only connects to the internet to download themes, widgets, weather and, if you choose, Linux and its packages.
+No account, no ads, no tracking. Tdroid only connects to the internet to download themes, widgets, weather and, if you choose, Linux and its packages.
 
-Tlauncher is an independent project and is not affiliated with Omarchy, omalauncher or Nix-on-Droid.
+Tdroid is an independent project and is not affiliated with Omarchy, omalauncher or Nix-on-Droid.

@@ -1,5 +1,5 @@
 {
-  description = "tlauncher's Linux system: nix-on-droid with patches/userspace applied";
+  description = "tdroid's Linux system: nix-on-droid with patches/userspace applied";
 
   # The same inputs as userspace/flake.nix, which the patched nix-on-droid is evaluated with.
   inputs = {
@@ -53,7 +53,7 @@
 
       # The bootstrap zip, built on a computer: upstream with patches/userspace applied.
       patched = system: outputsOf (nixpkgs.legacyPackages.${system}.applyPatches {
-        name = "nix-on-droid-tlauncher";
+        name = "nix-on-droid-tdroid";
         src = nix-on-droid;
         patches = lib.filesystem.listFilesRecursive ./patches/userspace;
       });
@@ -63,7 +63,7 @@
         modules = (args.modules or [ ]) ++ [ (import ./patches/userspace.nix nix-on-droid) ];
       });
 
-      # `nix run github:tuxdotrs/tlauncher -- switch`, which first boot runs too.
+      # `nix run github:tuxdotrs/tdroid -- switch`, which first boot runs too.
       packages = forEachSystem (system: {
         inherit (upstream.packages.${system}) nix-on-droid;
         inherit ((patched system).packages.${system}) bootstrapZip-aarch64 bootstrapZip-x86_64;
@@ -80,7 +80,7 @@
       # The config first boot creates in ~/.config/nix-on-droid.
       templates.default = {
         path = ./userspace-template;
-        description = "tlauncher's default Nix-on-Droid config.";
+        description = "tdroid's default Nix-on-Droid config.";
       };
     };
 }

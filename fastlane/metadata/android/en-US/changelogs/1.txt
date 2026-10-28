@@ -1,1 +1,1 @@
-First tlauncher release: omalauncher with a Nix-on-Droid system in place of Arch Linux ARM.
+First tdroid release: omalauncher with a Nix-on-Droid system in place of Arch Linux ARM.

@@ -1,6 +1,6 @@
 # Architecture
 
-How Tlauncher is put together, for anyone working on it.
+How Tdroid is put together, for anyone working on it.
 
 An Android home-screen launcher that runs Nix-on-Droid under proot and acts
 as its Wayland compositor. It is a fork of omalauncher, which ran Arch Linux ARM. The home screen (widgets, pinned apps, the bar
@@ -19,7 +19,7 @@ dir) and `files/home` (the guest's home) only.
 Launcher data that the guest also uses lives outside the rootfs and is bound
 into it by proot (`LauncherData.kt`), so installing or removing Linux never
 touches it: `files/omarchy` is `~/.local/share/omarchy` and `files/widgets` is
-`~/.config/tlauncher/widgets`.
+`~/.config/tdroid/widgets`.
 
 ## Source layout
 
@@ -65,7 +65,7 @@ inside and out. Every command first sources `nix-on-droid-session-init.sh`, as
 `login-inner` does. First boot is `login-inner` with `USE_FLAKE=1`, which makes
 `~/.config/nix-on-droid` from `userspace-template` and switches to it.
 
-The packages are the user's flake; the launcher only edits `tlauncher-packages.json`
+The packages are the user's flake; the launcher only edits `tdroid-packages.json`
 in it (coding agents) and runs `nix-on-droid switch` (`NixConfig`). Linux apps render in
 software: omalauncher's GPU drivers came from Arch packages and aren't ported.
 

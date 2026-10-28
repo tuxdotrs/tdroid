@@ -24,8 +24,8 @@ STORE="${1:-$HERE/../../omarchy-widgets}"
 shift || true
 export ANDROID_SERIAL="${ANDROID_SERIAL:-emulator-5554}"
 DEFAULT_THEME=tokyo-night
-APP=/data/data/com.tux.tlauncher/files/widgets
-STATE=/data/data/com.tux.tlauncher/files/widget-state
+APP=/data/data/com.tux.tdroid/files/widgets
+STATE=/data/data/com.tux.tdroid/files/widget-state
 WORK="$(mktemp -d)"
 
 adb root >/dev/null
@@ -88,11 +88,11 @@ webp() {
 
 # Runs store-previews-demo.sh in the guest (through the debug build's exec intent) and waits for it.
 demo() {
-  printf 'bash ~/.config/tlauncher/widgets/.demo.sh %s; touch ~/.config/tlauncher/widgets/.demo.done\n' "$1" > "$WORK/run.sh"
+  printf 'bash ~/.config/tdroid/widgets/.demo.sh %s; touch ~/.config/tdroid/widgets/.demo.done\n' "$1" > "$WORK/run.sh"
   put "$HERE/store-previews-demo.sh" .demo.sh
   put "$WORK/run.sh" .demo-run.sh
   adb shell "rm -f $APP/.demo.done"
-  adb shell am start -n com.tux.tlauncher/.MainActivity --es exec "'bash .config/tlauncher/widgets/.demo-run.sh'" >/dev/null
+  adb shell am start -n com.tux.tdroid/.MainActivity --es exec "'bash .config/tdroid/widgets/.demo-run.sh'" >/dev/null
   wait_for 60 "test -f $APP/.demo.done" || echo "demo $1 didn't finish" >&2
   adb shell "rm -f $APP/.demo.sh $APP/.demo-run.sh $APP/.demo.done"
 }
@@ -135,7 +135,7 @@ seed() {
     # A Berlin station picked; the demo script makes it look like it's playing.
     radio) json='{"cc":"DE","ccName":"Germany","station":{"id":"9f899cb2-8dd7-11e8-aa66-52543be04c81","name":"Radioeins","url":"http://d131.rndfnk.com/ard/rbb/radioeins/live/mp3/128/stream.mp3","tags":"","kbps":128,"cc":"DE"}}' ;;
     # A photo already set; the demo script downloads it.
-    photo) json='{"activePhoto":"~/.cache/tlauncher-photos/downloads/photo_demo.jpg"}' ;;
+    photo) json='{"activePhoto":"~/.cache/tdroid-photos/downloads/photo_demo.jpg"}' ;;
     # A week in, with daily goals: today part way to all three, with its taps there to undo.
     vice-tracker)
       json=$(python3 -c '
