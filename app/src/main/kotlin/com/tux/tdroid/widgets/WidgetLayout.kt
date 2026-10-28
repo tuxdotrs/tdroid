@@ -39,7 +39,7 @@ data class Cell(
 
 /**
  * The page left of the first, like a stock launcher's feed; pages further left count down from it. Each holds one face
- * ([HomeItem.isFace]) and no tiles, and an empty one always waits left of the leftmost.
+ * ([HomeItem.isFace]) and no tiles.
  */
 const val FACE_PAGE = 0
 

@@ -70,7 +70,7 @@ class LauncherState {
     var barHeight by mutableIntStateOf(0)
 
     /**
-     * Only faces (`face "…" { }`), or the empty one waiting left of page 1, show on home: they run under the
+     * Only faces (`face "…" { }`) show on home: they run under the
      * system bars, so the bands behind those make way. The strip and the bar slide away by [barShift].
      */
     var faceShowing by mutableStateOf(false)

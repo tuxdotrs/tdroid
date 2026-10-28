@@ -37,16 +37,13 @@ private fun OwlKind.what() =
                 "says). The launcher shows ${WidgetEngine.KEYBAR}, so change that file rather than making a new one"
     }
 
-/** A session in the widgets dir that creates an owl file of [kind]; a face for the empty [page] left of page 1, if given. */
+/** A session in the widgets dir that creates an owl file of [kind]. */
 fun newOwlCommand(
     agentBin: String,
     kind: OwlKind,
-    page: Int? = null,
 ) = agentCommand(
     agentBin,
-    "Read README.md, then ask me what to create: ${kind.what()}. " +
-        (page?.let { "It's for the empty page left of my home pages, which is waiting for it: give it page: $it. " } ?: "") +
-        "$DEPENDENCIES $CHECK",
+    "Read README.md, then ask me what to create: ${kind.what()}. $DEPENDENCIES $CHECK",
 )
 
 /** An agent session about one widget: its file, the language docs and its error log. */

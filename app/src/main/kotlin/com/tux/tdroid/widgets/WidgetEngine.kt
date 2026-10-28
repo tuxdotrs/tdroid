@@ -338,7 +338,7 @@ class WidgetEngine(
         return page
     }
 
-    /** The empty page waiting left of the leftmost, where a new face goes. */
+    /** The page left of the leftmost, where a new face goes. */
     fun newFacePage() = minOf(pages.minOrNull() ?: 1, FACE_PAGE + 1) - 1
 
     /**

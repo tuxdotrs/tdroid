@@ -81,7 +81,6 @@ fun HomeMenu(
                     val kinds: List<Pair<String, (String) -> String>> =
                         listOf(
                             "widget" to { newOwlCommand(it, OwlKind.Widget) },
-                            // Faces are made from the empty page left of them, which says where the new one goes.
                             "app" to { newOwlCommand(it, OwlKind.App) },
                             "panel" to { newOwlCommand(it, OwlKind.Panel) },
                         )

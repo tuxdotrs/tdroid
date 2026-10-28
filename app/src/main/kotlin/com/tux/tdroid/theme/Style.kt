@@ -153,7 +153,6 @@ class Style(
 
         val APP_TILES = Setting.Flag("home.app-tiles", true, "Apps on home in a tile like a widget; false draws bare icons on the wallpaper.")
         val RECENT_APPS = Setting.Flag("home.recent-apps", true, "The strip of recently used apps above the prompt bar.")
-        val EMPTY_PAGE_LEFT = Setting.Flag("home.empty-page-left", true, "The empty page left of home's leftmost, inviting a new face; false ends home at its own first page.")
         val EMPTY_PAGE_RIGHT =
             Setting.Flag(
                 "home.empty-page-right",
@@ -244,7 +243,7 @@ class Style(
  */
 object StyleFile {
     /** The file's format. Bump it with a step in [MIGRATIONS] when a key is renamed or a value's meaning changes. */
-    const val VERSION = 1
+    const val VERSION = 2
     const val VERSION_KEY = "version"
 
     /**
@@ -252,11 +251,15 @@ object StyleFile {
      * Adding a setting doesn't need one; renaming or reshaping one does, for
      * example `{ t -> t.remove("icons")?.let { t["icons.monochrome"] = it == "monochrome" } }`.
      */
-    val MIGRATIONS: List<(MutableMap<String, Any>) -> Unit> = emptyList()
+    val MIGRATIONS: List<(MutableMap<String, Any>) -> Unit> =
+        listOf(
+            // 1 -> 2: the empty page left of home is gone.
+            { t -> t.remove("home.empty-page-left") },
+        )
 
     val ALL: List<Setting<*>> =
         with(Style) {
-            listOf(THEME, BACKGROUND, FONT, APP_TILES, RECENT_APPS, EMPTY_PAGE_LEFT, EMPTY_PAGE_RIGHT, COLUMNS, FORCE_SINGLE_PAGE, GAPS_IN, GAPS_OUT, TILE_OPACITY, TILE_FROST, TILE_BORDER_WIDTH, TILE_BORDER, TILE_BORDER_FOCUSED) +
+            listOf(THEME, BACKGROUND, FONT, APP_TILES, RECENT_APPS, EMPTY_PAGE_RIGHT, COLUMNS, FORCE_SINGLE_PAGE, GAPS_IN, GAPS_OUT, TILE_OPACITY, TILE_FROST, TILE_BORDER_WIDTH, TILE_BORDER, TILE_BORDER_FOCUSED) +
                 listOf(SCREEN_GAPS_OUT, SCREEN_BORDER_WIDTH, KEYBAR_GAPS_OUT, KEYBAR_BORDER_WIDTH, MONOCHROME_ICONS, CORNER_SCALE) +
                 listOf(STATUS_BAR_SHOWN) + STATUS_BAR.all + NAVIGATION_BAR.all + listOf(TERMINAL_FONT, TERMINAL_TEXT, SWIPE_UP, SWIPE_DOWN)
         }

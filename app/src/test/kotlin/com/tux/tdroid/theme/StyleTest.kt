@@ -115,7 +115,7 @@ class StyleTest {
         assertEquals(6, Style()[Style.COLUMNS])
         val five = Toml.parse("[home]\ncolumns = 5\n")
         assertEquals(5, StyleFile.decode(five).style[Style.COLUMNS])
-        assertEquals("version = 1\n\n[home]\ncolumns = 5\n", Toml.write(StyleFile.encode(five, Style().with(Style.COLUMNS, 5)), ""))
+        assertEquals("version = 2\n\n[home]\ncolumns = 5\n", Toml.write(StyleFile.encode(five, Style().with(Style.COLUMNS, 5)), ""))
         for (bad in listOf(5.5, 3.0, 10.0)) {
             val decoded = StyleFile.decode(mapOf("home.columns" to bad), Style().with(Style.COLUMNS, 5))
             assertEquals(5, decoded.style[Style.COLUMNS])
@@ -134,7 +134,7 @@ class StyleTest {
         assertEquals(emptyList<String>(), decoded.problems)
         // A whole number is a number too: solid.
         assertEquals(1.0, StyleFile.decode(Toml.parse("[widgets]\nopacity = 1\n")).style[Style.TILE_OPACITY], 0.0)
-        assertEquals("version = 1\n\n[widgets]\nopacity = 0.6\nfrost = true\n", Toml.write(StyleFile.encode(t, decoded.style), ""))
+        assertEquals("version = 2\n\n[widgets]\nopacity = 0.6\nfrost = true\n", Toml.write(StyleFile.encode(t, decoded.style), ""))
         // Bad values keep the previous ones; the bars' bands keep their own opacity.
         val previous = Style().with(Style.TILE_OPACITY, 0.7)
         val bad = StyleFile.decode(mapOf("widgets.opacity" to 1.5, "widgets.frost" to "yes"), previous)
@@ -178,6 +178,12 @@ class StyleTest {
             StyleFile.migrate(t)
             assertEquals(StyleFile.VERSION.toDouble(), t["version"])
         }
+    }
+
+    @Test fun theEmptyLeftPageSettingIsDropped() {
+        val t = linkedMapOf<String, Any>("version" to 1.0, "home.empty-page-left" to false, "home.recent-apps" to false)
+        StyleFile.migrate(t)
+        assertEquals(mapOf("version" to 2.0, "home.recent-apps" to false), t)
     }
 
     /** Every version but the current one needs a step to the next. */

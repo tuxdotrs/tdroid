@@ -201,7 +201,7 @@ for scene in "${SCENES[@]}"; do
       install "apps/simonschubert/$a/app.owl" "market-app-simonschubert-$a.owl"
       continue
     elif [[ $item == face:* ]]; then
-      # A face keeps no cell; it takes the empty page left of page 1.
+      # A face keeps no cell; it takes the page left of page 1.
       f=${item#face:}
       install "faces/simonschubert/$f/face.owl" "$f.owl"
       continue
