@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.tux.tlauncher.linux.GuestEntry
+import com.tux.tlauncher.linux.Proot
 
 /** The path as tappable segments: / › root › .config. */
 @Composable
@@ -75,7 +76,7 @@ internal fun Places(
 ) {
     val places =
         remember(path) {
-            listOf("home" to "/root", "config" to "/root/.config", "downloads" to "/root/Downloads", "system" to "/")
+            listOf("home" to HOME, "config" to "$HOME/.config", "downloads" to "$HOME/Downloads", "system" to "/")
                 .filter { exists(it.second) }
         }
     LazyRow(Modifier.bleed(PanelPadding), contentPadding = PaddingValues(horizontal = PanelPadding - 8.dp)) {
@@ -225,3 +226,5 @@ internal fun MenuPopup(
         Box(Modifier.holdsKeys()) { MenuItems(items, onDismiss, minWidth = 200.dp, itemPadding = 13.dp) }
     }
 }
+
+private const val HOME = Proot.GUEST_HOME

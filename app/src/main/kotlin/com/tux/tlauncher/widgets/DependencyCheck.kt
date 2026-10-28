@@ -3,7 +3,7 @@ package com.tux.tlauncher.widgets
 import com.tux.tlauncher.linux.shellQuote
 
 /**
- * Which declared pacman packages are missing, and which programs widgets run
+ * Which declared packages are missing, and which programs widgets run
  * that aren't installed, from one guest shell call: [script] prints a
  * `pkg <name>` or `bin <name>` line for each, and [parse] reads them back.
  */
@@ -13,12 +13,16 @@ internal object DependencyCheck {
         val programs: Set<String>,
     )
 
-    /** pacman -T prints the packages that aren't installed. Names come from widget files: quoted. */
+    /**
+     * A package counts as there when its name is a command: `requires { pacman: [...] }` names Arch
+     * packages, which Nix has no record of, and most are named after their command. Names come from
+     * widget files: quoted.
+     */
     fun script(
         packages: Collection<String>,
         programs: Collection<String>,
     ): String =
-        (if (packages.isEmpty()) "" else "pacman -T ${packages.joinToString(" ") { shellQuote(it) }} | sed 's/^/pkg /'; ") +
+        (if (packages.isEmpty()) "" else "for p in ${packages.joinToString(" ") { shellQuote(it) }}; do command -v \"\$p\" >/dev/null || echo \"pkg \$p\"; done; ") +
             (if (programs.isEmpty()) "" else "for c in ${programs.joinToString(" ") { shellQuote(it) }}; do command -v \"\$c\" >/dev/null || echo \"bin \$c\"; done; ") +
             "true"
 

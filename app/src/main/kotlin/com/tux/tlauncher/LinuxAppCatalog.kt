@@ -52,7 +52,7 @@ class LinuxAppCatalog(
         }
         listed = true
         val ids = loaded.mapTo(HashSet()) { it.id }
-        // An entry can change its Icon= under the same id: on a fresh install, pacman's micro.desktop
+        // An entry can change its Icon= under the same id: on a fresh install, micro's own micro.desktop
         // shows up before the launcher's Editor entry replaces it.
         for (app in loaded) {
             if (iconNames[app.id].let { it != null && it != app.icon }) {
@@ -71,7 +71,7 @@ class LinuxAppCatalog(
         for (app in missing) {
             val decoded =
                 withContext(Dispatchers.IO) {
-                    resolveLinuxIcon(proot.rootfs, app.icon!!)?.let { decodeIcon(it, size) }?.let { it.asImageBitmap() to bitmapMask(it).asImageBitmap() }
+                    resolveLinuxIcon(proot::guestFile, app.icon!!)?.let { decodeIcon(it, size) }?.let { it.asImageBitmap() to bitmapMask(it).asImageBitmap() }
                 } ?: continue
             icons[app.id] = decoded.first
             masks[app.id] = decoded.second

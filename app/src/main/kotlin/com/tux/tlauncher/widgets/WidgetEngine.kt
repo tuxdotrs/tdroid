@@ -16,8 +16,7 @@ import com.tux.tlauncher.LauncherData
 import com.tux.tlauncher.Runtime
 import com.tux.tlauncher.linux.Agent
 import com.tux.tlauncher.linux.Proot
-import com.tux.tlauncher.linux.pacmanInstall
-import com.tux.tlauncher.linux.runJob
+import com.tux.tlauncher.linux.NIX_SWITCH
 import com.tux.tlauncher.ui.Palette
 import com.tux.tlauncher.theme.Style
 import com.tux.tlauncher.theme.StyleStore
@@ -44,7 +43,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
@@ -714,7 +712,7 @@ class WidgetEngine(
             when {
                 program.terminal -> "Terminal tiles aren't previewed"
                 waitsForLinux(spec) -> "it needs Linux, which isn't installed"
-                !missing[name].isNullOrEmpty() -> "it needs ${missing[name]!!.joinToString(" ")}; install with pacman -S --needed"
+                !missing[name].isNullOrEmpty() -> "it needs ${missing[name]!!.joinToString(" ")}; ${NIX_ADVICE}"
                 instance(spec) == null -> "it isn't running"
                 else -> null
             }
@@ -952,8 +950,8 @@ class WidgetEngine(
     }
 
     /**
-     * Checks, in one guest shell call, which declared pacman packages are
-     * missing and which programs the commands use that aren't installed. A
+     * Checks, in one guest shell call, which declared packages are missing
+     * (by their command, see [DependencyCheck]) and which programs the commands use that aren't installed. A
      * program that's missing and undeclared is reported, so the author adds it
      * to `requires`.
      */
@@ -988,18 +986,15 @@ class WidgetEngine(
     /** Warnings already written, per file version, so reloads don't repeat them. */
     private val warned = HashSet<String>()
 
-    /** Installs a widget's missing packages the way the bootstrap does: a full sync, so no partial upgrades. */
+    /**
+     * A widget's missing packages. omalauncher installed them with pacman; their names are Arch's, which
+     * nixpkgs often names differently, so for now the tile says what to add to the Nix config instead.
+     */
     fun installDependencies(spec: WidgetSpec) {
         val name = spec.file.name
         val packages = missing[name].orEmpty()
-        if (packages.isEmpty() || installs[name] == Install.Running) return
-        installs[name] = Install.Running
-        scope.launch {
-            val (ok, tail) = runtime.pacman.lock.withLock { withContext(Dispatchers.IO) { proot.runJob(pacmanInstall(packages)) } }
-            if (ok) installs.remove(name) else installs[name] = Install.Failed(tail.toString())
-            // Other widgets may have been waiting on the same packages.
-            checkDependencies(specs.toList())
-        }
+        if (packages.isEmpty()) return
+        installs[name] = Install.Failed("needs ${packages.joinToString(" ")}: $NIX_ADVICE")
     }
 
     /**
@@ -1063,9 +1058,12 @@ class WidgetEngine(
         /** The widgets dir, relative to the guest home. */
         const val GUEST_DIR = ".config/tlauncher/widgets"
 
+        /** What a widget whose packages are missing tells the user. */
+        private const val NIX_ADVICE = "add them to environment.packages in ~/.config/nix-on-droid/nix-on-droid.nix and run $NIX_SWITCH"
+
         private const val AGENT_POINTER =
-            "# tlauncher\n\nThis Arch system runs inside an Android launcher, tlauncher; its source is at " +
-                "https://github.com/OWNER/tlauncher, should you need to understand how the launcher works. " +
+            "# tlauncher\n\nThis Nix-on-Droid system runs inside an Android launcher, tlauncher; its source is at " +
+                "https://github.com/tuxdotrs/tlauncher, should you need to understand how the launcher works. " +
                 "Home-screen widgets are `.owl` files in " +
                 "~/$GUEST_DIR, written in a small declarative language documented in README.md there (and docs/ next to it); so are apps for the " +
                 "app drawer (`app \"name\" { }`) and panels that swiping up or down on home opens (`panel \"name\" { }`, picked with " +

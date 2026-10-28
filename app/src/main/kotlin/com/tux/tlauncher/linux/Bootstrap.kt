@@ -5,7 +5,6 @@ import android.system.ErrnoException
 import android.system.Os
 import android.system.OsConstants
 import android.util.Log
-import com.tux.tlauncher.CountingInputStream
 import com.tux.tlauncher.LauncherData
 import com.tux.tlauncher.hex
 import com.tux.tlauncher.openHttp
@@ -18,20 +17,29 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
-import java.io.BufferedInputStream
 import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.security.DigestInputStream
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
-import java.util.zip.GZIPInputStream
+import java.util.zip.ZipFile
 import kotlin.concurrent.thread
 
 private const val TAG = "bootstrap"
-private const val ROOTFS_URL = "http://os.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest.tar.gz"
-private const val TARBALL = "ArchLinuxARM-aarch64-latest.tar.gz"
+/**
+ * Nix-on-Droid's bootstrap zip with tlauncher's patches, from scripts/build-userspace.sh. Rebuild and
+ * upload it whenever patches/userspace or the userspace submodule change, and update both values.
+ */
+private const val BOOTSTRAP_URL = "https://github.com/tuxdotrs/tlauncher/releases/download/userspace-3264519/bootstrap-aarch64.zip"
+private const val BOOTSTRAP_SHA256 = "fa342631c133fa88fe9c84339a843b326be8d79aedf32e5d337cb6495d50d205"
+private const val BOOTSTRAP = "bootstrap-aarch64.zip"
+
+/**
+ * Where the patched Nix-on-Droid expects to be, baked into the zip. Only the phone's first user has
+ * its app data there; a secondary user or a work profile has it under /data/user/<n>.
+ */
+private val INSTALL_PARENTS = setOf("/data/data/com.tux.tlauncher/files", "/data/user/0/com.tux.tlauncher/files")
 
 /** Attempts per network step before setup (or an update) reports a failure. */
 private const val NETWORK_TRIES = 3
@@ -39,11 +47,11 @@ private const val NETWORK_TRIES = 3
 /** How long `echo | cat` may take in the guest before setup calls the phone's kernel broken; it takes well under a second. */
 private const val FORK_CHECK_SECONDS = 30L
 
-/** Room for the download (~830 MB). */
-private const val TARBALL_SPACE = 900_000_000L
+/** Room for the download (~36 MB). */
+private const val TARBALL_SPACE = 50_000_000L
 
-/** Room for the unpacked system and what setup installs into it (~1.9 GB with an agent), with some to spare. */
-private const val SYSTEM_SPACE = 2_100_000_000L
+/** Room for the unpacked system (~125 MB) and what first boot builds into /nix (~1.5 GB with an agent), with some to spare. */
+private const val SYSTEM_SPACE = 2_000_000_000L
 
 /** A failure that trying again can't fix, like a full disk: a network step stops at once rather than downloading again. */
 private class NoRetry(
@@ -58,46 +66,14 @@ private fun Throwable.outOfSpace() =
 
 private fun gigabytes(bytes: Long) = "%.1f GB".format(bytes / 1e9)
 
-/**
- * Omarchy's classic terminal apps. The Nerd Font glyphs come from the
- * symbols-only font: the full JetBrainsMono Nerd family is ~200 MB.
- * Changing this list needs a new id for the packages step.
- */
-private val PACKAGES =
-    listOf(
-        "foot", "ttf-dejavu", "btop", "fastfetch", "ttf-jetbrains-mono", "ttf-nerd-fonts-symbols-mono",
-        "neovim", "starship", "eza", "bat", "fd", "ripgrep", "fzf", "zoxide", "tmux", "gum", "jq", "tealdeer",
-        "man-db", "less", "dua-cli", "inxi", "whois", "git", "bash-completion", "pulseaudio", "pulseaudio-alsa", "micro",
-    )
-
-/** Omarchy's Winamp-style player; not in Arch's ARM repos, but upstream ships an arm64 build. */
-private const val CLIAMP_VERSION = "v2.3.0"
-private const val CLIAMP_URL = "https://github.com/bjarneo/cliamp/releases/download/$CLIAMP_VERSION/cliamp-linux-arm64"
-private const val CLIAMP_SHA256 = "827b4aa879feecab33ea621dc1460c60ffa765c210b5046d679ce5a4073d2b32"
-
-private val MIRRORS =
-    listOf(
-        "de.mirror.archlinuxarm.org",
-        "fl.us.mirror.archlinuxarm.org",
-        "eu.mirror.archlinuxarm.org",
-        "dk.mirror.archlinuxarm.org",
-        "mirror.archlinuxarm.org",
-    )
-
-/** Firmware and kernel modules are useless under proot; pacman never unpacks them. */
-private const val NO_EXTRACT = "NoExtract = usr/lib/firmware/* usr/lib/modules/*"
-
-/** What the bootstrap installs; the packages screen doesn't offer to remove these. */
-val CORE_PACKAGES = PACKAGES.toSet()
-
 /** The phases of a fresh install, in order, as the setup screen lists them. */
 enum class Stage(
     val label: String,
 ) {
-    Download("download arch linux"),
+    Download("download nix-on-droid"),
     Extract("unpack the system"),
-    Configure("configure pacman"),
-    Packages("install omarchy's apps"),
+    Configure("check the system"),
+    Packages("install omarchy's apps with nix"),
     Agents("install coding agents"),
 }
 
@@ -146,7 +122,7 @@ private class Step(
 )
 
 /**
- * Sets up the Arch Linux ARM rootfs and keeps it current. A fresh install
+ * Sets up the Nix-on-Droid system and keeps it current. A fresh install
  * runs every [steps] entry behind the setup screen; after an app update only
  * the new ones run, see [Step].
  */
@@ -154,7 +130,7 @@ class Bootstrap(
     private val context: Context,
     private val proot: Proot,
     private val agents: AgentStore,
-    private val pacman: Pacman,
+    private val nix: NixConfig,
     /** The guest's files; see [Provisioner]. */
     private val provisioner: Provisioner,
 ) {
@@ -190,22 +166,13 @@ class Bootstrap(
 
     private val steps =
         listOf(
-            Step("rootfs", Stage.Download, "Downloading Arch Linux ARM", network = true) { installRootfs() },
-            Step("etc-2", Stage.Configure, "Configuring the system", network = false) { configure() },
+            Step("bootstrap", Stage.Download, "Downloading Nix-on-Droid", network = true) { installSystem() },
             // Only before the first setup: a phone where Linux already runs can fork.
             Step("forks-1", Stage.Configure, "Checking that programs can start", network = false, isDone = { journal.setupComplete }) {
                 checkForks()
             },
-            Step("keyring-1", Stage.Configure, "Initializing pacman keyring", network = false) {
-                guest("pacman-key --init && pacman-key --populate archlinuxarm")
-            },
-            // The ALARM image ships a kernel and firmware (~1 GB, split into sub-packages) we can't use.
-            Step("no-kernel-1", Stage.Configure, "Removing kernel packages", network = false) {
-                guest("pacman -Rdd --noconfirm linux-aarch64 \$(pacman -Qq | grep ^linux-firmware); true")
-            },
-            Step("packages-1", Stage.Packages, "Installing packages", network = true) { guest(pacmanInstall(PACKAGES, refresh = true)) },
+            Step("first-boot-1", Stage.Packages, "Building the first Nix-on-Droid generation", network = true) { firstBoot() },
             Step("keymap-1", Stage.Packages, "Compiling keymap", network = false, isDone = { proot.keymap.exists() }) { compileKeymap() },
-            Step("cliamp-$CLIAMP_VERSION", Stage.Packages, "Installing cliamp", network = true) { installCliamp() },
             // Omarchy's themes were a step here ("omarchy-<ref>") until Linux became optional; ThemeStore fetches them now.
         )
 
@@ -213,7 +180,7 @@ class Bootstrap(
 
     /**
      * Runs the step; one that needs the network gets a few tries, since phone connections drop.
-     * Retrying is cheap: pacman keeps what it already downloaded, and downloads resume.
+     * Retrying is cheap: Nix keeps what it already fetched in the store, and downloads resume.
      */
     private suspend fun Step.attempt() {
         repeat(if (network) NETWORK_TRIES - 1 else 0) { n ->
@@ -240,8 +207,10 @@ class Bootstrap(
                     journal.setupComplete -> update()
                     !choiceFile.exists() -> {
                         _state.value = LinuxState.NotInstalled
-                        // Left by a removal that didn't finish (the app was killed, or a file resisted).
-                        if (proot.rootfs.exists()) runCatching { LauncherData.deleteTree(proot.rootfs) }.onFailure { Log.e(TAG, "leftover rootfs", it) }
+                        // Left by a removal that didn't finish (the app was killed, or a file resisted), or omalauncher's Arch.
+                        for (dir in listOf(proot.rootfs, proot.home, legacyArch)) {
+                            if (dir.exists()) runCatching { LauncherData.deleteTree(dir) }.onFailure { Log.e(TAG, "leftover $dir", it) }
+                        }
                         return@withContext
                     }
                     else -> setup()
@@ -287,26 +256,31 @@ class Bootstrap(
         run()
     }
 
+    /** Where omalauncher kept its Arch Linux rootfs; an install from then is deleted, not migrated. */
+    private val legacyArch get() = File(proot.filesDir, "arch")
+
     /**
-     * Deletes the rootfs and what we recorded about it. Callers stop guest
-     * processes first. Launcher data (themes, widgets) lives outside it and stays.
+     * Deletes the system, the guest home and what we recorded about them. Callers stop guest
+     * processes first. Launcher data (themes, widgets) lives outside them and stays.
      */
     suspend fun remove() =
         withContext(Dispatchers.IO) {
             _state.value = LinuxState.Removing
             backlog = emptyList()
-            pacman.lock.withLock {
-                try {
-                    LauncherData.deleteTree(proot.rootfs)
-                } catch (e: Exception) {
-                    // Whatever is left can't run; a later install unpacks over a fresh directory anyway.
-                    Log.e(TAG, "rootfs not fully deleted", e)
+            nix.lock.withLock {
+                for (dir in listOf(proot.rootfs, proot.home, staging)) {
+                    try {
+                        LauncherData.deleteTree(dir)
+                    } catch (e: Exception) {
+                        // Whatever is left can't run; a later install unpacks over a fresh directory anyway.
+                        Log.e(TAG, "$dir not fully deleted", e)
+                    }
                 }
                 journal.reset()
                 provisioner.forgetAll()
                 choiceFile.delete()
                 proot.keymap.delete()
-                context.cacheDir.listFiles { f -> f.name.startsWith(TARBALL) }?.forEach { it.delete() }
+                context.cacheDir.listFiles { f -> f.name.startsWith(BOOTSTRAP) }?.forEach { it.delete() }
                 log.clear()
                 cancelled = false
             }
@@ -373,8 +347,8 @@ class Bootstrap(
             for (step in todo) {
                 _updates.value = JobState.Working(step.label, emptyList())
                 try {
-                    // Package steps run pacman; nothing else may hold its lock meanwhile.
-                    pacman.lock.withLock { step.attempt() }
+                    // Package steps switch the Nix config; nothing else may switch meanwhile.
+                    nix.lock.withLock { step.attempt() }
                     journal.mark(step.id)
                 } catch (e: Throwable) {
                     Log.w(TAG, "update step ${step.id} failed", e)
@@ -386,21 +360,24 @@ class Bootstrap(
         }
 
     /**
-     * Installs the agents picked on the welcome screen. A failed agent doesn't
-     * fail setup: it can be installed again from settings.
+     * Installs the agents picked on the welcome screen, in one switch. A failed switch doesn't
+     * fail setup: they can be installed again from settings.
      */
     private suspend fun installAgents() {
         val chosen = chosenAgents
-        for (agent in chosen) {
-            if (agents.isInstalled(agent)) continue
+        val missing = chosen.filterNot { agents.isInstalled(it) }
+        if (missing.isNotEmpty()) {
             checkCancelled()
+            report(Stage.Agents, "Installing ${missing.joinToString { it.name }}")
+            val before = nix.packages()
+            nix.writePackages((before + missing.map { it.attr }).distinct())
             try {
-                report(Stage.Agents, "Installing ${agent.name}")
-                guest(agents.installScript(agent))
-                agents.onInstalled(agent)
+                guest(NIX_SWITCH)
             } catch (e: IllegalStateException) {
-                log.add("${agent.name} didn't install; try again in settings › coding agents")
+                nix.writePackages(before)
+                log.add("${missing.joinToString { it.name }} didn't install; try again in settings › coding agents")
             }
+            agents.onInstalled()
         }
         chosen.firstOrNull { agents.isInstalled(it) }?.let(agents::choose)
     }
@@ -416,31 +393,50 @@ class Bootstrap(
         _state.value = LinuxState.Installing(stage, step, progress, log.toList())
     }
 
-    /** Always a fresh unpack: this step only runs until one completed, so a rootfs here is a half-unpacked one. */
-    private fun installRootfs() {
-        // Unpacking replaces the rootfs: the user's home, packages and agents. Only ever before a setup finished.
+    /** Where the zip is unpacked; renamed to the system once complete, so a half-unpacked one never runs. */
+    private val staging get() = File(proot.filesDir, "usr.staging")
+
+    /** Always a fresh unpack: this step only runs until one completed, so a system here is a half-set-up one. */
+    private fun installSystem() {
+        // Unpacking replaces the system: the user's packages and agents. Only ever before a setup finished.
         check(!journal.setupComplete) { "refusing to replace a set-up system" }
-        // A half-unpacked rootfs from an earlier try only takes up room the download needs.
-        LauncherData.deleteTree(proot.rootfs)
-        val tarball =
+        val parent = proot.filesDir.canonicalFile.path
+        if (parent !in INSTALL_PARENTS && proot.filesDir.path !in INSTALL_PARENTS) {
+            throw NoRetry("Linux can only be installed for the phone's main user: Nix-on-Droid's paths are fixed (this app's files are in $parent)")
+        }
+        // A half-set-up system from an earlier try only takes up room the download needs.
+        for (dir in listOf(proot.rootfs, staging, legacyArch)) LauncherData.deleteTree(dir)
+        val zip =
             try {
                 obtainTarball()
             } catch (e: Exception) {
                 throw if (e.outOfSpace()) outOfSpace(e) else e
             }
         try {
-            extract(tarball)
+            verify(zip)
+            extract(zip)
         } catch (e: Exception) {
             if (e is NoRetry || e is CancellationException || e.outOfSpace()) {
                 // The download is fine and kept for the next try; what was unpacked gives its room back.
-                runCatching { LauncherData.deleteTree(proot.rootfs) }
+                runCatching { LauncherData.deleteTree(staging) }
                 throw if (e is NoRetry || e is CancellationException) e else outOfSpace(e)
             }
             // A truncated or bogus download (a captive portal's page) would fail every retry otherwise.
-            if (tarball.parentFile == context.cacheDir) tarball.delete()
+            if (zip.parentFile == context.cacheDir) zip.delete()
             throw e
         }
-        tarball.delete() // ~830 MB we no longer need
+        if (zip.parentFile == context.cacheDir) zip.delete()
+    }
+
+    /** The zip is the one this build expects; one pushed with adb for development may be any build. */
+    private fun verify(zip: File) {
+        if (zip.parentFile != context.cacheDir) return
+        val digest = MessageDigest.getInstance("SHA-256")
+        DigestInputStream(zip.inputStream(), digest).use { input ->
+            val buf = ByteArray(1 shl 16)
+            while (input.read(buf) >= 0) checkCancelled()
+        }
+        check(digest.digest().hex() == BOOTSTRAP_SHA256) { "the download isn't the expected Nix-on-Droid build; retry to download it again" }
     }
 
     /** Stops before writing when the app's storage has less than [bytes] free: a full phone fails at once, not after the download. */
@@ -455,20 +451,20 @@ class Bootstrap(
         NoRetry("the phone ran out of space; Linux needs about ${gigabytes(TARBALL_SPACE + SYSTEM_SPACE)} free; free some up, then try again", e)
 
     /**
-     * Prefers a tarball pushed via adb to the app's external files dir; downloads otherwise.
+     * Prefers a zip pushed via adb to the app's external files dir; downloads otherwise.
      * An interrupted download resumes where it stopped, as long as the file on the server is
-     * still the same one (If-Range): "latest" moves, and two versions mustn't be spliced.
+     * still the same one (If-Range): two versions mustn't be spliced.
      */
     private fun obtainTarball(): File {
-        val external = context.getExternalFilesDir(null)?.let { File(it, TARBALL) }
+        val external = context.getExternalFilesDir(null)?.let { File(it, BOOTSTRAP) }
         if (external != null && external.exists()) return external
-        val target = File(context.cacheDir, TARBALL)
+        val target = File(context.cacheDir, BOOTSTRAP)
         if (target.exists()) return target
-        val partial = File(context.cacheDir, "$TARBALL.part")
-        val validator = File(context.cacheDir, "$TARBALL.version")
+        val partial = File(context.cacheDir, "$BOOTSTRAP.part")
+        val validator = File(context.cacheDir, "$BOOTSTRAP.version")
         requireSpace(TARBALL_SPACE - (if (partial.exists()) partial.length() else 0L) + SYSTEM_SPACE)
-        report(Stage.Download, "Downloading Arch Linux ARM", 0f)
-        val conn = openHttp(ROOTFS_URL)
+        report(Stage.Download, "Downloading Nix-on-Droid", 0f)
+        val conn = openHttp(BOOTSTRAP_URL)
         connection = conn
         try {
             checkCancelled()
@@ -525,124 +521,74 @@ class Bootstrap(
         check(total <= 0 || partial.length() == total) { "the download was cut short; retry to continue it" }
     }
 
-    private fun extract(tarball: File) {
+    /**
+     * Unpacks Nix-on-Droid's bootstrap zip the way its app does: zip has no symlinks or modes, so
+     * SYMLINKS.txt lists the links (`target←path`) and EXECUTABLES.txt the files to make executable.
+     */
+    private fun extract(zip: File) {
         report(Stage.Extract, "Starting", 0f)
-        val root = proot.rootfs
+        val root = staging
         LauncherData.deleteTree(root)
         requireSpace(SYSTEM_SPACE)
         root.mkdirs()
-        // Nothing we recorded about the old rootfs holds for this one.
+        // Nothing we recorded about an old system holds for this one.
         journal.reset()
         provisioner.forgetAll()
-        val total = tarball.length()
-        val counter = CountingInputStream(tarball.inputStream())
-        TarArchiveInputStream(GZIPInputStream(BufferedInputStream(counter, 1 shl 16), 1 shl 16)).use { tar ->
-            var count = 0
-            while (true) {
+        ZipFile(zip).use { archive ->
+            val entries = archive.entries().toList()
+            for ((count, entry) in entries.withIndex()) {
                 checkCancelled()
-                val entry = tar.nextEntry ?: break
-                val name = entry.name.removePrefix("./").trimEnd('/')
-                if (name.isEmpty() || skipEntry(name)) continue
-                val file = File(root, name)
-                file.parentFile?.mkdirs()
-                when {
-                    entry.isDirectory -> file.mkdirs()
-                    entry.isSymbolicLink -> {
-                        file.delete()
-                        Os.symlink(entry.linkName, file.path)
-                    }
-                    // Hard links aren't allowed in app storage; copy the target instead.
-                    entry.isLink -> {
-                        val target = File(root, entry.linkName.removePrefix("./"))
-                        if (target.exists()) target.copyTo(file, overwrite = true)
-                    }
-                    entry.isFile -> file.outputStream().use { tar.copyTo(it) }
-                    else -> continue // device nodes, fifos
+                val file = File(root, entry.name)
+                // A zip naming a path outside the root (../) would write over the launcher's own files.
+                check(file.canonicalPath.startsWith(root.canonicalPath + "/") || file.canonicalFile == root.canonicalFile) { "bad path in the zip: ${entry.name}" }
+                if (entry.isDirectory) {
+                    file.mkdirs()
+                } else {
+                    file.parentFile?.mkdirs()
+                    archive.getInputStream(entry).use { input -> file.outputStream().use { input.copyTo(it, 1 shl 16) } }
                 }
-                if (!entry.isSymbolicLink) runCatching { Os.chmod(file.path, entry.mode and 0x1ff or 0x180) }
-                if (++count % 500 == 0) {
-                    report(Stage.Extract, "$count files", counter.count.toFloat() / total)
-                }
+                if (count % 200 == 0) report(Stage.Extract, "$count of ${entries.size} files", count.toFloat() / entries.size)
             }
         }
+        val symlinks = File(root, "SYMLINKS.txt")
+        for (line in symlinks.readLines()) {
+            if (line.isBlank()) continue
+            val (target, path) = line.split('←', limit = 2)
+            val link = File(root, path)
+            link.parentFile?.mkdirs()
+            link.delete()
+            Os.symlink(target, link.path)
+        }
+        val executables = File(root, "EXECUTABLES.txt")
+        for (path in executables.readLines()) if (path.isNotBlank()) Os.chmod(File(root, path).path, 0x1c0) // 0700
+        symlinks.delete()
+        executables.delete()
+        check(root.renameTo(proot.rootfs)) { "can't move the system into place" }
+        proot.home.mkdirs()
     }
 
-    private fun skipEntry(name: String) =
-        name == "boot" ||
-            name.startsWith("boot/") ||
-            name.startsWith("usr/lib/firmware/") ||
-            name.startsWith("usr/lib/modules/") ||
-            name.startsWith("dev/")
-
-    private fun configure() {
-        val root = proot.rootfs
-        File(root, "etc/resolv.conf").apply {
-            delete()
-            writeText("nameserver 8.8.8.8\nnameserver 1.1.1.1\n")
-        }
-        File(root, "etc/hosts").writeText("127.0.0.1 localhost\n::1 localhost\n")
-        File(root, "etc/locale.conf").writeText("LANG=C.UTF-8\n")
-        // The geo-balanced default mirror often lags behind; pacman falls through this list on 404s.
-        File(root, "etc/pacman.d/mirrorlist").writeText(MIRRORS.joinToString("") { "Server = http://$it/\$arch/\$repo\n" })
-        // pacman drops privileges and uses Landlock for downloads; neither works under proot.
-        // Its low-speed timeout aborts big packages on slow phone connections, every retry.
-        val conf = File(root, "etc/pacman.conf")
-        conf.writeText(
-            conf
-                .readText()
-                .replace(Regex("(?m)^(DownloadUser|CheckSpace|DisableSandbox|DisableDownloadTimeout|NoExtract)\\b.*\n"), "")
-                .replaceFirst("[options]", "[options]\nDisableSandbox\nDisableDownloadTimeout\n$NO_EXTRACT"),
+    /**
+     * Nix-on-Droid's first boot, which its app runs on the first login: login-inner, with flakes rather
+     * than its prompt (USE_FLAKE). It makes ~/.config/nix-on-droid from tlauncher's template, builds it
+     * and switches to it. A try that stopped part way left that config; `nix flake new` won't write over it.
+     */
+    private fun firstBoot() {
+        guest(
+            "if [ -e /etc/UNINTIALISED ]; then rm -rf ~/.config/nix-on-droid; fi; " +
+                "USE_FLAKE=1 /bin/sh /usr/lib/login-inner true",
         )
     }
 
     private fun compileKeymap() {
-        guest(
-            "xkbcli compile-keymap --layout us > /tmp/keymap.xkb || " +
-                "/usr/lib/xkbcommon/xkbcli-compile-keymap --layout us > /tmp/keymap.xkb",
-        )
+        guest("xkbcli compile-keymap --layout us > /tmp/keymap.xkb")
         // Clients mmap the keymap and parse it as a C string.
         writeAtomically(proot.keymap, proot.hostFile("/tmp/keymap.xkb").readBytes() + 0)
     }
 
     /**
-     * Streamed to disk and hashed on the way: the binary is ~36 MB, and holding it while a buffer
-     * doubles needs more heap than small phones give an app (48 MB on a 2 GB Android 10 device).
-     */
-    private fun installCliamp() {
-        val target = File(proot.rootfs, "usr/local/bin/cliamp")
-        val tmp = File(target.parentFile, ".cliamp.download")
-        val digest = MessageDigest.getInstance("SHA-256")
-        // Runs under pacman's lock, so a stalled download must time out rather than hold it.
-        val conn = openHttp(CLIAMP_URL, connectTimeout = 10_000, readTimeout = 20_000)
-        try {
-            conn.useCaches = false
-            if (conn.responseCode != 200) throw IOException("HTTP ${conn.responseCode} for $CLIAMP_URL")
-            target.parentFile?.mkdirs()
-            DigestInputStream(conn.inputStream, digest).use { input ->
-                tmp.outputStream().use { out ->
-                    input.copyTo(out, 1 shl 16)
-                    out.fd.sync()
-                }
-            }
-        } finally {
-            conn.disconnect()
-        }
-        if (digest.digest().hex() != CLIAMP_SHA256) {
-            tmp.delete()
-            error("cliamp download doesn't match $CLIAMP_VERSION")
-        }
-        tmp.setExecutable(true, false)
-        // One rename, so a running cliamp is never replaced by half a file.
-        if (!tmp.renameTo(target)) {
-            tmp.delete()
-            error("can't replace $target")
-        }
-    }
-
-    /**
      * Runs a pipeline, the smallest guest command that forks. Some custom ROM kernels (4.14, with Android's cgroup v2
      * freezer backported but not its follow-up, upstream 05b289263772) make every fork of a traced process restart
-     * forever (#105), and the next step, pacman-key, would hang without a word. Such a phone gets an error naming the cause.
+     * forever (#105), and the next step, first boot, would hang without a word. Such a phone gets an error naming the cause.
      */
     private fun checkForks() {
         val process = proot.process("echo forks | cat").start()
@@ -660,7 +606,7 @@ class Bootstrap(
         log.add("a guest command that starts another one didn't finish in $FORK_CHECK_SECONDS s (kernel ${System.getProperty("os.version")})")
         error(
             "this phone's kernel stops Linux programs from starting other programs, so setup can't go on. " +
-                "custom ROMs with a 4.14 kernel need kernel commit 05b289263772 from their maintainer; see github issue #105",
+                "custom ROMs with a 4.14 kernel need kernel commit 05b289263772 from their maintainer; see omalauncher's github issue #105",
         )
     }
 

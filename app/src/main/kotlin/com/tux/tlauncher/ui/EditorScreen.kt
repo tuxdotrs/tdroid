@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.tux.tlauncher.Runtime
 import com.tux.tlauncher.linux.GuestFs
+import com.tux.tlauncher.linux.Proot
 import com.tux.tlauncher.linux.shellQuote
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -555,7 +556,7 @@ fun EditorHome(
                         Column(Modifier.weight(1f)) {
                             BasicText(path.substringAfterLast('/'), style = Mono.copy(fontSize = TextSize.Item), maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
                             BasicText(
-                                fs.parent(path)?.replaceFirst(Regex("^/root(?=/|$)"), "~").orEmpty(),
+                                fs.parent(path)?.let { if (it == Proot.GUEST_HOME || it.startsWith(Proot.GUEST_HOME + "/")) "~" + it.removePrefix(Proot.GUEST_HOME) else it }.orEmpty(),
                                 style = Mono.copy(color = Palette.muted, fontSize = TextSize.Small),
                                 maxLines = 1,
                                 overflow = TextOverflow.MiddleEllipsis,
@@ -568,10 +569,10 @@ fun EditorHome(
     }
 
     if (newFile) {
-        TextDialog("new file", "/root/", "create", hint = "a path in Linux", onDismiss = { newFile = false }) { path ->
+        TextDialog("new file", "~/", "create", hint = "a path in Linux", onDismiss = { newFile = false }) { path ->
             newFile = false
             if (path.endsWith('/')) return@TextDialog
-            open(fs.normalize(if (path.startsWith('/')) path else "/root/$path"))
+            open(fs.normalize(if (path.startsWith('/')) path else Proot.GUEST_HOME + "/" + path.removePrefix("~/")))
         }
     }
 }

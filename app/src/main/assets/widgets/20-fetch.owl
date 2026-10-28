@@ -10,17 +10,18 @@ widget "fetch" {
   source sys = android.system every 5s
   source bat = android.battery
   source net = android.network every 5s
-  // The Arch side, once Linux is installed. Base tools only, so it doesn't make the widget need Linux.
+  // The Nix side, once Linux is installed. Base tools only, so it doesn't make the widget need Linux.
+  // Packages are the store paths the profile needs; explicit, the ones it lists; upgraded, its last switch.
   source lx = cmd("""
     . /etc/os-release
     printf '{"os":"%s","pkgs":%s,"explicit":%s,"shell":"%s","upgraded":"%s"}' \
-      "$PRETTY_NAME" "$(pacman -Qq | wc -l)" "$(pacman -Qqe | wc -l)" \
+      "$PRETTY_NAME" "$(nix-store -qR ~/.nix-profile | wc -l)" "$(nix-store -q --references ~/.nix-profile | wc -l)" \
       "$(basename "$SHELL") $(bash --version | head -1 | awk '{print $4}' | cut -d'(' -f1)" \
-      "$(grep -a 'starting full system upgrade' /var/log/pacman.log 2>/dev/null | tail -1 | cut -c2-11)"
+      "$(date -r /nix/var/nix/profiles/nix-on-droid +%Y-%m-%d 2>/dev/null)"
   """) every 5m json optional
 
   let host = lower(replace(dev.model ?? "phone", " ", "-"))
-  let user = linux ? "root" : "user"
+  let user = linux ? "nix-on-droid" : "user"
   let mem = sys.memory
   let disk = sys.storage
   let shown = sys.display
@@ -114,7 +115,7 @@ widget "fetch" {
     Line { key: "host"; value: dev == null ? null : "${dev.maker} ${dev.model}" }
     Line { key: "kernel"; value: kernel }
     Line { key: "uptime"; value: sys.uptime == null ? null : fmtDuration(sys.uptime) }
-    Line { key: "packages"; value: linux ? (lx.pkgs == null ? null : "${lx.pkgs} (pacman), ${sys.apps} (apps)") : "${sys.apps} (apps)" }
+    Line { key: "packages"; value: linux ? (lx.pkgs == null ? null : "${lx.pkgs} (nix), ${sys.apps} (apps)") : "${sys.apps} (apps)" }
     if linux {
       Line { key: "shell"; value: lx.shell }
     } else {
@@ -192,10 +193,10 @@ widget "fetch" {
         Line { key: "upgraded"; value: lx.upgraded == "" ? "never" : lx.upgraded; size: 13; keyWidth: 110 }
         Row {
           justify: end
-          Button { text: "fastfetch ↗"; color: muted; onTap: terminal("command -v fastfetch >/dev/null || pacman -S --needed --noconfirm fastfetch; fastfetch", "fastfetch") }
+          Button { text: "fastfetch ↗"; color: muted; onTap: terminal("command -v fastfetch >/dev/null && fastfetch || nix run nixpkgs#fastfetch", "fastfetch") }
         }
       } else {
-        Text { text: "not installed. arch linux arm adds a terminal, agents and pacman to the launcher."; style: small; color: muted }
+        Text { text: "not installed. nix-on-droid adds a terminal, agents and nix to the launcher."; style: small; color: muted }
         Row {
           justify: end
           Button { text: "install linux"; color: accent; onTap: launcher("linux") }

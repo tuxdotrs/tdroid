@@ -9,21 +9,7 @@ import kotlinx.coroutines.withContext
 /** [s] as one single-quoted shell word; the owl language's `sh()` quotes the same way. */
 fun shellQuote(s: String) = shQuote(s)
 
-/**
- * Installs [packages] with a full sync, never a partial upgrade, then drops
- * the downloaded packages: storage on phones is tight. [refresh] re-downloads
- * the package databases even if pacman thinks they're current: mirrors lag
- * each other, and a database from one names versions another no longer has.
- */
-fun pacmanInstall(
-    packages: Collection<String>,
-    refresh: Boolean = false,
-) = "pacman -Sy${if (refresh) "y" else ""}u --noconfirm --needed ${packages.joinToString(" ") { shellQuote(it) }} && $CLEAN_PACMAN_CACHE"
-
-/** `pacman -Scc --noconfirm` answers its "remove all?" prompt with the default, No, so delete directly. */
-const val CLEAN_PACMAN_CACHE = "rm -rf /var/cache/pacman/pkg/*"
-
-/** Progress of a guest job started from the UI: installing an agent, a package, a widget's packages. */
+/** Progress of a guest job started from the UI: installing an agent, switching the Nix config. */
 sealed interface JobState {
     data object Idle : JobState
 

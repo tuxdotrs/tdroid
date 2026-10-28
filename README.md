@@ -20,8 +20,8 @@ window opens as its own Android task, with its own card in Recents.
   `~/.config/omarchy/themes`
 - **Widgets** written in OWL, a small declarative language you can edit on the
   phone, plus a [widget store](https://github.com/SimonSchubert/omarchy-widgets)
-- **Linux, optional**: pacman and the AUR, Linux apps in their own windows,
-  terminal widgets, a file manager, and opt-in GPU acceleration on Mali and Adreno 6xx+ GPUs
+- **Linux, optional**: Nix-on-Droid with nixpkgs, Linux apps in their own windows,
+  terminal widgets and a file manager
 - **Coding agents**: the bar at the bottom sends a prompt to Claude Code, Codex,
   Copilot, opencode and others, which open in a terminal
 - No account, no ads, no tracking
@@ -71,11 +71,32 @@ swipe-down panel dismisses it.
 ## Building
 
 ```sh
+git submodule update --init       # userspace: upstream nix-on-droid, which patches/userspace applies to
 ./scripts/fetch-proot.sh          # Termux's proot -> app/src/main/jniLibs (needs bsdtar)
+./scripts/build-userspace.sh      # the Linux system's bootstrap zip (needs Nix with flakes)
 ./gradlew :app:installDebug
-# optional: skip the 830 MB download on the device
-adb push ArchLinuxARM-aarch64-latest.tar.gz /sdcard/Android/data/com.tux.tlauncher/files/
+# optional: use the zip you built instead of the release's
+adb push build/userspace/bootstrap-aarch64.zip /sdcard/Android/data/com.tux.tlauncher/files/
 ```
+
+`nix-shell` (`shell.nix`) has the Android SDK, NDK and JDKs the build needs; run the steps above
+inside it, or one at a time with `nix-shell --run './gradlew :app:assembleDebug'`.
+
+### The Linux system
+
+The Linux system is [Nix-on-Droid](https://github.com/nix-community/nix-on-droid), in the
+`userspace` submodule, which is never edited: tlauncher's changes are the patch series in
+`patches/userspace` (it hard-codes its app's data dir, `com.termux.nix`). `flake.nix` applies
+them for the device too: first boot creates `~/.config/nix-on-droid` from
+`userspace-template` and every `nix-on-droid switch` builds with this repo's flake, so the
+repo has to be public at `github:tuxdotrs/tlauncher`.
+
+- `scripts/userspace-patches.sh apply` checks the series out as commits in
+  `build/userspace-work`; commit there, then `scripts/userspace-patches.sh export`.
+- Moving to a newer nix-on-droid: update the submodule and the `nix-on-droid` input in
+  `flake.nix` to the same rev (`scripts/check-userspace-rev.sh` checks), then rebuild the zip.
+- After a rebuild, upload the zip to a release and update `BOOTSTRAP_URL` and
+  `BOOTSTRAP_SHA256` in `linux/Bootstrap.kt`.
 
 Tests: `./gradlew :owl:test :app:testDebugUnitTest`. `./gradlew :owl:owlJar`
 builds `owl/build/cli/owl.jar`, the checker the widget store's CI runs.
@@ -83,8 +104,8 @@ builds `owl/build/cli/owl.jar`, the checker the widget store's CI runs.
 In debug builds you can launch guest commands with
 `adb shell am start -n com.tux.tlauncher/.MainActivity --es exec foot`.
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): the compositor, rendering, GPU
-  acceleration, and how updates reach existing installs
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): the compositor, rendering, the Linux system,
+  and how updates reach existing installs
 - [docs/RELEASING.md](docs/RELEASING.md): Play releases and store assets
 - [app/src/main/assets/widgets/README.md](app/src/main/assets/widgets/README.md):
   the widget language

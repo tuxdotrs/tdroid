@@ -142,7 +142,7 @@ private fun Welcome(
             BasicText("omarchy on your home screen", style = Mono.copy(fontSize = TextSize.Large))
             Spacer(Modifier.height(10.dp))
             BasicText(
-                "Omarchy's themes and wallpapers, your Android apps, and home-screen widgets. Arch Linux adds " +
+                "Omarchy's themes and wallpapers, your Android apps, and home-screen widgets. Nix-on-Droid adds " +
                     "terminal apps and coding agents, now or later in settings.",
                 style = Mono.copy(color = Subtle, lineHeight = 20.sp),
             )
@@ -166,7 +166,7 @@ private fun Welcome(
         Column {
             Label("linux")
             Spacer(Modifier.height(12.dp))
-            Choice("also set up Arch Linux", "terminal apps, agents, pacman · ~1 GB download, 3 GB space", linux, onToggleLinux)
+            Choice("also set up Nix-on-Droid", "terminal apps, agents, nix · ~1.5 GB download, 2 GB space", linux, onToggleLinux)
             if (linux) {
                 Spacer(Modifier.height(24.dp))
                 AgentPicker(picked, onToggle)

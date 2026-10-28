@@ -169,26 +169,27 @@ class GuestThemeConfig(
          * portrait has at a readable size, and btop then draws nothing: it opens
          * with less instead. Its first preset, cpu and processes, needs 60; under
          * that only the process list fits (44), from a copy of the config.
-         * /usr/local/bin precedes /usr/bin.
+         * /usr/local/bin precedes the Nix profile on PATH.
          */
         val BTOP =
             """
             #!/bin/sh
             # tlauncher: btop with fewer boxes in a narrow terminal (see GuestThemeConfig.kt)
-            [ ${'$'}# -eq 0 ] || exec /usr/bin/btop "${'$'}@"
+            btop=${'$'}HOME/.nix-profile/bin/btop
+            [ ${'$'}# -eq 0 ] || exec "${'$'}btop" "${'$'}@"
             cols=${'$'}(stty size 2>/dev/null | cut -d' ' -f2)
             cols=${'$'}{cols:-80}
-            [ "${'$'}cols" -ge 80 ] && exec /usr/bin/btop
-            [ "${'$'}cols" -ge 60 ] && exec /usr/bin/btop -p 1
+            [ "${'$'}cols" -ge 80 ] && exec "${'$'}btop"
+            [ "${'$'}cols" -ge 60 ] && exec "${'$'}btop" -p 1
             conf=${'$'}{XDG_CONFIG_HOME:-${'$'}HOME/.config}/btop/btop.conf
             narrow=/tmp/tlauncher-btop-narrow.conf
             { grep -v -e '^shown_boxes' -e '^presets' "${'$'}conf" 2>/dev/null; echo 'shown_boxes = "proc"'; echo 'presets = "proc:0:default"'; } > "${'$'}narrow"
-            exec /usr/bin/btop -c "${'$'}narrow"
+            exec "${'$'}btop" -c "${'$'}narrow"
             """.trimIndent() + "\n"
 
         val BASHRC =
             """
-            export OMARCHY_PATH=/root/.local/share/omarchy
+            export OMARCHY_PATH=${Proot.GUEST_HOME}/.local/share/omarchy
             export EDITOR=omarchy-edit VISUAL=omarchy-edit
             [[ $- != *i* ]] && return
             [[ -f ${'$'}OMARCHY_PATH/default/bash/rc ]] && source "${'$'}OMARCHY_PATH/default/bash/rc"

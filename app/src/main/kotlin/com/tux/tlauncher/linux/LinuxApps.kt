@@ -28,11 +28,14 @@ private val FIELD_CODE = Regex("%[fFuUdDnNickvm]")
  * NoDisplay=true file in ~/.local/share/applications hides a package's entry.
  */
 fun loadLinuxApps(proot: Proot): List<LinuxApp> {
-    val dirs = listOf(proot.applications, File(proot.rootfs, "usr/share/applications"))
-    return dirs
-        .flatMap { it.listFiles { f -> f.extension == "desktop" }.orEmpty().toList() }
+    // The Nix profile's entries are links to absolute guest paths in /nix/store, which the guest resolves for us.
+    val system =
+        proot.guestFile(PROFILE_APPLICATIONS)
+            ?.listFiles { f -> f.extension == "desktop" }
+            .orEmpty()
+            .mapNotNull { proot.guestFile("$PROFILE_APPLICATIONS/${it.name}") }
+    return (proot.applications.listFiles { f -> f.extension == "desktop" }.orEmpty().toList() + system)
         .distinctBy { it.name }
-        // An entry may be a link to an absolute guest path (AUR packages link from /opt), which the host can't open.
         .mapNotNull { runCatching { parseDesktopEntry(it) }.getOrNull() }
         .distinctBy { it.name }
         .sortedBy { it.name.lowercase() }
@@ -59,23 +62,29 @@ private fun parseDesktopEntry(file: File): LinuxApp? {
 
 private val ICON_SIZES = listOf("256x256", "192x192", "128x128", "96x96", "72x72", "64x64", "48x48")
 
+/** The Nix profile's share dir, where Nix-on-Droid's packages put their desktop entries and icons. */
+private const val PROFILE_SHARE = "${Proot.GUEST_HOME}/.nix-profile/share"
+private const val PROFILE_APPLICATIONS = "$PROFILE_SHARE/applications"
+private const val USER_SHARE = "${Proot.GUEST_HOME}/.local/share"
+
 /**
  * Finds an icon file for [icon] in the guest: an absolute path, or a hicolor/pixmaps
  * lookup by name, largest PNG first, then SVG (many apps only ship hicolor/scalable).
+ * [guestFile] is where a guest path is on Android, links followed in the guest ([Proot.guestFile]).
  */
 fun resolveLinuxIcon(
-    rootfs: File,
+    guestFile: (String) -> File?,
     icon: String,
 ): File? {
-    if (icon.startsWith("/")) return File(rootfs, icon.removePrefix("/")).takeIf { it.isFile && it.extension in ICON_TYPES }
+    if (icon.startsWith("/")) return guestFile(icon)?.takeIf { it.isFile && it.extension in ICON_TYPES }
     val candidates =
-        ICON_SIZES.map { "usr/share/icons/hicolor/$it/apps/$icon.png" } +
-            "usr/share/pixmaps/$icon.png" +
-            "root/.local/share/icons/hicolor/256x256/apps/$icon.png" +
-            "usr/share/icons/hicolor/scalable/apps/$icon.svg" +
-            "usr/share/pixmaps/$icon.svg" +
-            "root/.local/share/icons/hicolor/scalable/apps/$icon.svg"
-    return candidates.map { File(rootfs, it) }.firstOrNull { it.isFile }
+        ICON_SIZES.map { "$PROFILE_SHARE/icons/hicolor/$it/apps/$icon.png" } +
+            "$PROFILE_SHARE/pixmaps/$icon.png" +
+            "$USER_SHARE/icons/hicolor/256x256/apps/$icon.png" +
+            "$PROFILE_SHARE/icons/hicolor/scalable/apps/$icon.svg" +
+            "$PROFILE_SHARE/pixmaps/$icon.svg" +
+            "$USER_SHARE/icons/hicolor/scalable/apps/$icon.svg"
+    return candidates.firstNotNullOfOrNull { path -> guestFile(path)?.takeIf { it.isFile } }
 }
 
 private val ICON_TYPES = setOf("png", "svg")

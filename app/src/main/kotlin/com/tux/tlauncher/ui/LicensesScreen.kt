@@ -54,7 +54,7 @@ private val COMPONENTS =
             "gpl-2.0",
             "Copyright (C) 2015 STMicroelectronics. Built from Termux's 5.1.107.96 with tlauncher's patches; the binary's libtalloc.so.2 dependency is renamed to libtalloc.so.",
             "https://proot-me.github.io",
-            source = "https://github.com/OWNER/tlauncher/tree/main/patches/proot",
+            source = "https://github.com/tuxdotrs/tlauncher/tree/main/patches/proot",
         ),
         Component(
             "talloc",
@@ -73,22 +73,19 @@ private val COMPONENTS =
             source = "https://github.com/termux/libandroid-shmem/tree/v0.7",
         ),
         Component(
-            "Mesa",
-            "OpenGL on Adreno GPUs in the optional Linux system",
+            "omalauncher",
+            "the launcher tlauncher is a fork of",
             "mit",
-            "Copyright (C) 1999-2007 Brian Paul and the Mesa contributors. Mesa 26.2.4 with tlauncher's " +
-                "zink patch. Most files are MIT; the rest are under the permissive licenses in Mesa's licenses/ directory.",
-            "https://mesa3d.org",
-            source = "https://github.com/OWNER/tlauncher/tree/main/scripts/mesa",
+            "Copyright (c) 2026 Simon Schubert and contributors",
+            "https://github.com/SimonSchubert/omalauncher",
         ),
         Component(
-            "wayland-protocols",
-            "protocol files bundled with Mesa",
+            "Nix-on-Droid",
+            "the optional Linux system, downloaded with tlauncher's patches",
             "mit",
-            "Copyright © 2008-2013 Kristian Høgsberg\nCopyright © 2010-2013 Intel Corporation\n" +
-                "Copyright © 2013 Rafael Antognolli\nCopyright © 2013 Jasper St. Pierre\nCopyright © 2014 Jonas Ådahl\n" +
-                "Copyright © 2014 Jason Ekstrand\nCopyright © 2014-2015 Collabora, Ltd.\nCopyright © 2015 Red Hat Inc.",
-            "https://gitlab.freedesktop.org/wayland/wayland-protocols",
+            "Copyright (c) 2019-2024, see AUTHORS",
+            "https://github.com/nix-community/nix-on-droid",
+            source = "https://github.com/tuxdotrs/tlauncher/tree/main/patches/userspace",
         ),
         Component(
             "Omarchy",

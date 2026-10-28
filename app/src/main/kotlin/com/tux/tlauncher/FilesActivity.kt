@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.tux.tlauncher.linux.Proot
 import com.tux.tlauncher.ui.FilesScreen
 
 /** The Files app for the Linux file system: its own task and Recents card, opened from the drawer or `omarchy-files` in a terminal. */
@@ -32,6 +33,6 @@ class FilesActivity : InstantActivity() {
 
     companion object {
         const val EXTRA_PATH = "path"
-        const val DEFAULT_PATH = "/root"
+        const val DEFAULT_PATH = Proot.GUEST_HOME
     }
 }

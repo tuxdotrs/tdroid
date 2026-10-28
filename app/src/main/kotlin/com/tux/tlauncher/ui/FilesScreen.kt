@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.tux.tlauncher.Runtime
 import com.tux.tlauncher.linux.GuestEntry
+import com.tux.tlauncher.linux.Proot
 import com.tux.tlauncher.linux.shellQuote
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -221,7 +222,7 @@ fun FilesScreen(
                         PanelTitle(
                             when (path) {
                                 "/" -> "/"
-                                "/root" -> "home"
+                                Proot.GUEST_HOME -> "home"
                                 else -> path.substringAfterLast('/')
                             },
                         )

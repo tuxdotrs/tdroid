@@ -92,10 +92,10 @@ fun rememberLinuxInstall(runtime: Runtime): (List<String>) -> Unit {
 private fun InstallOffer(runtime: Runtime) {
     var picked by rememberSaveable { mutableStateOf(listOf(AGENTS.first().bin)) }
     val install = rememberLinuxInstall(runtime)
-    BasicText("arch linux, optional", style = Mono.copy(fontSize = TextSize.Large))
+    BasicText("nix-on-droid, optional", style = Mono.copy(fontSize = TextSize.Large))
     Spacer(Modifier.height(8.dp))
     BasicText(
-        "Linux apps, terminal widgets, coding agents, pacman and Files. About 1 GB to download and 3 GB of space; installs in the background.",
+        "Linux apps, terminal widgets, coding agents, Nix and Files. About 1.5 GB to download and 2 GB of space; installs in the background.",
         style = Mono.copy(color = Palette.muted, fontSize = TextSize.Small),
     )
     Spacer(Modifier.height(16.dp))
@@ -117,7 +117,7 @@ private fun Installed(runtime: Runtime) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            BasicText("arch linux", style = Mono.copy(fontSize = TextSize.Item))
+            BasicText("nix-on-droid", style = Mono.copy(fontSize = TextSize.Item))
             BasicText(
                 "installed · " + (size?.let(::formatSize) ?: "measuring…"),
                 style = Mono.copy(color = Palette.muted, fontSize = TextSize.Small),
@@ -141,7 +141,7 @@ private fun Installed(runtime: Runtime) {
         ) {
             BasicText("remove linux?", style = Mono.copy(color = Palette.red))
             BasicText(
-                "Deletes Linux apps, coding agents, packages and everything in /root, like Downloads. " +
+                "Deletes Linux apps, coding agents, packages and everything in your Linux home, like Downloads. " +
                     "Themes, wallpapers, widgets and your home screen stay.",
                 style = Mono.copy(color = Palette.muted, fontSize = TextSize.Small),
             )

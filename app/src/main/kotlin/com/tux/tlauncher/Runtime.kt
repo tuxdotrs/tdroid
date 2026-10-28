@@ -25,8 +25,8 @@ import com.tux.tlauncher.linux.EDIT_COMMAND
 import com.tux.tlauncher.linux.FILES_COMMAND
 import com.tux.tlauncher.linux.Gpu
 import com.tux.tlauncher.linux.LinuxApp
+import com.tux.tlauncher.linux.NixConfig
 import com.tux.tlauncher.linux.OpenBridge
-import com.tux.tlauncher.linux.Pacman
 import com.tux.tlauncher.linux.Proot
 import com.tux.tlauncher.linux.SystemUpdates
 import com.tux.tlauncher.linux.LauncherFont
@@ -97,14 +97,14 @@ class Runtime(
     val themes = ThemeStore(context, proot, style, isLinux = { linux }, onConfigChanged = ::syncGuest)
     private val audio = AudioBridge(proot)
     private val openBridge = OpenBridge(context, proot, onOpenFiles = ::openFiles, onEdit = ::edit)
-    val agents = AgentStore(proot, onChanged = ::syncGuest)
-    val pacman = Pacman(context, proot)
+    val nix = NixConfig(proot)
+    val agents = AgentStore(proot, nix, onChanged = ::syncGuest)
     val widgets = WidgetEngine(context, proot, this)
 
     /** Widgets' speech(...) and android.speech. */
     val dictation = Dictation(context)
-    val updates = SystemUpdates(proot, pacman, agents)
-    val gpu = Gpu(context, proot, pacman)
+    val updates = SystemUpdates()
+    val gpu = Gpu()
 
     /** The launcher's own provided files (default widgets, their docs); see [Provisioner]. */
     private val launcherFiles = Provisioner(proot.filesDir, LauncherData.LAUNCHER_MANIFEST, listOf(widgets::managed, style::managed))
@@ -118,13 +118,12 @@ class Runtime(
                 { defaultApps(proot.applications) },
                 { bundledIcons(context, proot.home) },
                 openBridge::managed,
-                pacman::managed,
                 agents::managed,
                 themes::managed,
                 widgets::guestManaged,
             ),
         )
-    val bootstrap = Bootstrap(context, proot, agents, pacman, provisioner)
+    val bootstrap = Bootstrap(context, proot, agents, nix, provisioner)
 
     /** Its jobs write files and start the guest; one that fails (storage full) mustn't take the home screen down. */
     private val scope =

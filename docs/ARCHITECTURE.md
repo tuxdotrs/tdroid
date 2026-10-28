@@ -2,18 +2,19 @@
 
 How Tlauncher is put together, for anyone working on it.
 
-An Android home-screen launcher that runs Arch Linux ARM under proot and acts
-as its Wayland compositor. The home screen (widgets, pinned apps, the bar
+An Android home-screen launcher that runs Nix-on-Droid under proot and acts
+as its Wayland compositor. It is a fork of omalauncher, which ran Arch Linux ARM. The home screen (widgets, pinned apps, the bar
 and its app list) is Jetpack Compose; every Linux window opens as its own Android task,
 so it gets a Recents card and behaves like a separate app.
 
 Linux is optional. Without it the launcher still has Omarchy's themes and
 wallpapers, Android apps from the bar and the widgets that don't run commands.
 Everything else is offered as an install from settings › linux and wherever
-it appears: Linux apps, terminal widgets, coding agents, pacman and Files.
+it appears: Linux apps, terminal widgets, coding agents, Nix and Files.
 Widgets that need Linux (`Program.needsLinux`: cmd/stream sources, `Terminal`,
 run/terminal/app actions, `requires`) show as placeholders in their cells until
-it's installed. Removing Linux deletes `files/arch` only.
+it's installed. Removing Linux deletes `files/usr` (Nix-on-Droid's installation
+dir) and `files/home` (the guest's home) only.
 
 Launcher data that the guest also uses lives outside the rootfs and is bound
 into it by proot (`LauncherData.kt`), so installing or removing Linux never
@@ -30,8 +31,8 @@ touches it: `files/omarchy` is `~/.local/share/omarchy` and `files/widgets` is
   text-input-v3 for where a client's text cursor is) and
   `WindowRenderer`, which draws one window into its activity's SurfaceView
   (or, for a widget's `Terminal`, into a TextureView in the tile)
-- `linux/`: proot, the rootfs setup and its update steps, pacman, coding
-  agents, and the bridges to Android (audio, URLs, /proc)
+- `linux/`: proot, the Nix-on-Droid setup and its update steps, the Nix config
+  (`NixConfig`), coding agents, and the bridges to Android (audio, URLs, /proc)
 - `ui/`: the Compose home screen, the bar and its app list, settings and Files
 - `widgets/`: the widget engine; the language itself is in the `owl` module.
   A widget's state and sources live in its `WidgetInstance`, which runs while
@@ -51,40 +52,22 @@ snapshots the surface tree, redraws only the dirty region of the SurfaceView
 callbacks. Hidden windows get no frame callbacks, so their clients stop
 drawing.
 
-## GPU acceleration
+## The Linux system
 
-Opt-in, in settings › linux. The device node picks the driver. Mali (v10+:
-Pixel 7 and newer, recent MediaTek) uses the pinned PanVK-kbase driver on
-`/dev/mali0`, from zenithblue-oss/panvk-kbase-android. Adreno 6xx and newer
-use the pinned Turnip KGSL driver on `/dev/kgsl-3d0`, the Arch
-`vulkan-freedreno` package from lfdevs/mesa-for-android-container
-(turnip-26.3.0-devel-20260824). The model comes from
-`/sys/class/kgsl/kgsl-3d0/gpu_model`. An older Adreno, or a model that cannot
-be read, is not offered. Arch's own Mesa talks to DRM, so it would not see
-`/dev/kgsl-3d0`. Both blobs are checked against their sha256 and installed
-under `/usr/local`, and both ICD manifests live under
-`/usr/local/share/vulkan/icd.d`, which pacman does not own. A download that
-fails deletes its temp files on the way out. Turning one on also installs
-Mesa and the Vulkan loader with pacman. OpenGL is zink. On Adreno the guest
-uses a patched Mesa 26.2.4 libEGL (`scripts/mesa/0001-egl-wayland-keep-zink-on-shm.patch`):
-the compositor only offers `wl_shm`, stock Mesa clears zink after the Wayland
-DRM path fails, and the shm buffer stays black while frames still count.
-`MESA_LOADER_DRIVER_OVERRIDE=zink` keeps zink set so kopper presents through
-Vulkan WSI. The patched libraries live under `/usr/local/tlauncher-mesa`,
-off the default linker path. Frames still arrive as wl_shm buffers
-(`MESA_VK_WSI_DEBUG=sw`), so the compositor is the same either way.
+Nix-on-Droid, from the `userspace` submodule with `patches/userspace` applied (see the
+README). The app downloads its bootstrap zip and unpacks it into `files/usr`, recreating
+the links in `SYMLINKS.txt` and the modes in `EXECUTABLES.txt`. proot runs it the way
+Nix-on-Droid's own login does, but without its `login` script, which every
+`nix-on-droid switch` rewrites: Android's root stays the guest's, with `files/usr`'s
+`nix`, `bin`, `etc` and `usr` bound over `/nix`, `/bin`, `/etc` and `/usr`. The guest
+runs as the app's user, `nix-on-droid`, with its home at `files/home`, the same path
+inside and out. Every command first sources `nix-on-droid-session-init.sh`, as
+`login-inner` does. First boot is `login-inner` with `USE_FLAKE=1`, which makes
+`~/.config/nix-on-droid` from `userspace-template` and switches to it.
 
-`linux/Gpu.kt` only switches guest apps to the GPU (`Proot.graphicsEnv`)
-after a check passes (vulkaninfo finds PanVK or Turnip, eglinfo gets zink),
-and checks again after every system update; if that fails, the ICD manifest
-is removed and apps render in software (llvmpipe). Software mode sets `VK_ICD_FILENAMES` and `VK_DRIVER_FILES` to a manifest
-that is never created, so the loader does not scan the default ICD
-directories. The loader prefers `VK_DRIVER_FILES`, so turning the GPU on
-sets both names to the real manifest. The check unsets the software values
-before it exports those. Settings offers a
-retry. One app can opt out with `GALLIUM_DRIVER=llvmpipe app`. Terminal apps
-(foot) draw on the CPU and
-don't change.
+The packages are the user's flake; the launcher only edits `tlauncher-packages.json`
+in it (coding agents) and runs `nix-on-droid switch` (`NixConfig`). Linux apps render in
+software: omalauncher's GPU drivers came from Arch packages and aren't ported.
 
 ## Updates
 
@@ -120,21 +103,16 @@ reach existing installs without breaking them. There are four mechanisms:
   failing. Bump the level with every addition a widget could depend on. The
   store's `index.json` format number only changes for incompatible changes.
 
-**System updates** (`linux/SystemUpdates.kt`) are the user's own: pacman
-packages and the tools mise installed (the coding agents). The launcher
-checks at most every 6 hours while it's on screen: pacman against a private
-copy of the databases in /tmp, so the real ones and pacman's lock are
-untouched, plus `mise outdated`. When updates are pending, a dot shows on the
-app list's settings gear. "update all" in settings runs `pacman -Syyu` and then
-`mise upgrade` as one job. Nothing updates automatically.
+**System updates** (`linux/SystemUpdates.kt`) aren't checked on Nix yet: the user
+runs `nix flake update` and `nix-on-droid switch` in `~/.config/nix-on-droid`.
 
 Pinned versions: `ThemeStore.OMARCHY_REF` (the Omarchy commit) and
-`CLIAMP_VERSION` in `Bootstrap.kt`. Changing the first makes every install
+`BOOTSTRAP_URL` in `Bootstrap.kt`. Changing the first makes every install
 download the new themes on its next start (`ThemeStore.ensureRelease`, with or
 without Linux); rerun `scripts/fetch-theme-colors.sh` with it, since first run
 fetches only the picked theme's colors and first background by the names that
-script bundles. Changing the second updates Linux installs through the steps
-above.
+script bundles. The second only reaches new installs; existing ones update
+through Nix.
 
 Guest processes die with the app (`--kill-on-exit`), so the Wayland protocol,
 the socket and the guest environment carry no state across an update.

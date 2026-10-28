@@ -46,7 +46,6 @@ fun SettingsScreen(
     onStyle: () -> Unit,
     onPages: () -> Unit,
     onAgents: () -> Unit,
-    onPackages: () -> Unit,
     onLinux: () -> Unit,
     onLicenses: () -> Unit,
     onGestures: () -> Unit,
@@ -73,7 +72,7 @@ fun SettingsScreen(
                 is LinuxState.Installing -> "installing" + (l.progress?.let { " ${(it * 100).toInt()}%" } ?: "") + " · ${l.stage.label}"
                 is LinuxState.Failed -> "setup stopped · retry"
                 LinuxState.Removing -> "removing…"
-                else -> "not installed · install Arch Linux for terminal apps and agents"
+                else -> "not installed · install Nix-on-Droid for terminal apps and agents"
             }
         val rows =
             listOfNotNull(
@@ -86,7 +85,6 @@ fun SettingsScreen(
                 } else {
                     Triple("coding agents", "needs linux", onLinux)
                 },
-                Triple("packages", if (installed) "install Linux apps and tools with pacman and the AUR" else "needs linux", if (installed) onPackages else onLinux),
                 if (localNetworkMissing) {
                     Triple("local network", "let widgets and linux reach your printer, home assistant, …") {
                         askLocalNetwork.launch(LocalNetwork.PERMISSION)
@@ -200,7 +198,7 @@ private fun UpdatesBox(
     }
 }
 
-/** Pending pacman and agent updates, from the last check; "update" runs them as one job. */
+/** Pending system updates, from the last check; "update" runs them as one job. */
 @Composable
 private fun LinuxUpdatesRows(runtime: Runtime) {
     val updates = runtime.updates

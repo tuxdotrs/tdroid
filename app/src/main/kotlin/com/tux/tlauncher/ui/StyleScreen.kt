@@ -416,7 +416,7 @@ private fun TerminalSection(
     LaunchedEffect(Unit) { font.refreshFamilies() }
     Heading("terminal")
     FontOption(font.families, font.family) { family -> style.update { it.with(Style.TERMINAL_FONT, family) } }
-    OptionHint("terminals opened from now on · more with pacman, like ttf-cascadia-code", Modifier.padding(bottom = 4.dp))
+    OptionHint("terminals opened from now on · more with nix, like cascadia-code", Modifier.padding(bottom = 4.dp))
     NumberOption("text", TerminalText.entries.map { it.label to it.em.toDouble() }, Style.TERMINAL_TEXT, style, unit = " dp")
     // In portrait, where columns run short; landscape has plenty.
     val metrics = LocalContext.current.resources.displayMetrics
@@ -650,7 +650,7 @@ private fun Heading(
     }
 }
 
-/** Font names run long and pacman can add many: the picked one shows, and tapping it lists the others under it. */
+/** Font names run long and nix can add many: the picked one shows, and tapping it lists the others under it. */
 @Composable
 private fun FontOption(
     families: List<String>,

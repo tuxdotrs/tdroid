@@ -2,7 +2,7 @@ Privacy Policy
 
 Effective Date: 23.10.2026
 
-Tlauncher ("the App") is an Android home screen launcher developed by OWNER ("we," "us," or "our"). This Privacy Policy explains how the App handles information.
+Tlauncher ("the App") is an Android home screen launcher developed by tuxdotrs ("we," "us," or "our"). This Privacy Policy explains how the App handles information.
 
 1. Information We Do Not Collect
 
@@ -30,7 +30,7 @@ Your home screen layout, widgets, theme settings and, if you install it, the Lin
 The App connects to the following services. Each request reveals your IP address to that service, which handles it under its own privacy policy.
 
 GitHub (github.com, raw.githubusercontent.com, codeload.github.com, simonschubert.github.io)
-- Downloads Omarchy themes and wallpapers, the widget store catalog and widgets, and the cliamp music player.
+- Downloads Omarchy themes and wallpapers, and the widget store catalog and widgets.
 - Privacy Policy: https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement
 
 dpaste.com (sharing widgets)
@@ -45,10 +45,10 @@ Widgets
 - Widgets you add, and the app drawer and swipe panels (which are widget files you can edit), can see which apps are installed on your phone (their names, package names and icons), how often you open them from the App, and the shortcuts apps offer in their long-press menus (their names, which can include contact names). This list is read on your device, only when a widget on your home screen asks for it, and is not stored or sent to us. A widget could send what it reads to a service it contacts; each widget's page in the store says if it reads your apps.
 
 Optional Linux environment
-- Only if you choose to install Linux, the App downloads Arch Linux ARM from archlinuxarm.org and its mirrors. Packages you install come from Arch Linux ARM mirrors and, if you choose, the Arch User Repository (aur.archlinux.org).
+- Only if you choose to install Linux, the App downloads the Nix-on-Droid bootstrap from GitHub. Its Nix configuration and packages are then downloaded from GitHub (github.com, codeload.github.com) and the Nix binary cache (cache.nixos.org).
 
 Optional coding agents
-- Only if you choose to install a coding agent (for example Claude Code, Codex or OpenCode), it is downloaded from its vendor. The prompts you send to an agent, and the files it works with, are sent to that agent's provider under the provider's own terms and privacy policy. You sign in to each agent with your own account.
+- Only if you choose to install a coding agent (for example Claude Code, Codex or OpenCode), it is downloaded from the Nix binary cache (cache.nixos.org). The prompts you send to an agent, and the files it works with, are sent to that agent's provider under the provider's own terms and privacy policy. You sign in to each agent with your own account.
 
 We do not share any data with third parties ourselves.
 

@@ -36,7 +36,6 @@ enum class SettingsPage {
 
     /** The store on its faces, from the empty page left of page 1. */
     FaceStore,
-    Packages,
 
     /** Install, progress, remove; opened by anything that needs Linux. */
     Linux,
@@ -111,7 +110,6 @@ private fun SettingsPage(
                 onStyle = { stack.push(SettingsPage.Style) },
                 onPages = { stack.push(SettingsPage.Pages) },
                 onAgents = { stack.push(SettingsPage.Agents) },
-                onPackages = { stack.push(SettingsPage.Packages) },
                 onLinux = { stack.push(SettingsPage.Linux) },
                 onLicenses = { stack.push(SettingsPage.Licenses) },
                 onGestures = { stack.push(SettingsPage.Gestures) },
@@ -158,7 +156,6 @@ private fun SettingsPage(
             }
         SettingsPage.Store -> StoreScreen(runtime.widgets, runtime.agents.installed, homePage, runtime.themes.picked, onDismiss = close, onOpenApp = runtime::openOwlApp)
         SettingsPage.FaceStore -> StoreScreen(runtime.widgets, runtime.agents.installed, homePage, runtime.themes.picked, onDismiss = close, initialKind = OwlKind.Face, onOpenApp = runtime::openOwlApp)
-        SettingsPage.Packages -> PackagesScreen(runtime, onDismiss = close)
         SettingsPage.Linux -> LinuxScreen(runtime, onDismiss = close)
         SettingsPage.Licenses -> LicensesScreen(onDismiss = close)
         SettingsPage.Gestures -> GesturesScreen(runtime, onDismiss = close, onAgent = ::agent)
